@@ -74,66 +74,89 @@ impl Expression {
         use Expression::*;
         let flattened: Self = self.flatten();
         match flattened {
-            Addition (terms) => match terms {
-                // remove unnecessary `Addition` from single term
-                terms if terms.len() == 1 => terms[0].clone(),
-                // convert empty `Addition` to `0`
-                terms if terms.len() == 0 => Integer (BigInt::from(0)),
-                // reduce other `Addition`s
-                terms => {
-                    let mut integer_sum: BigInt = BigInt::ZERO;
-                    let mut other_terms: Vec<Expression> = Vec::new();
-                    for term in terms {
-                        match term {
-                            Integer (integer) => integer_sum += integer,
-                            other => other_terms.push(other.clone()),
+            Addition (terms) => {
+                let terms: Vec<Self> = terms.into_iter()
+                    .map(|term| term.reduce())
+                    .collect();
+                match terms {
+                    // remove unnecessary `Addition` from single term
+                    terms if terms.len() == 1 => terms[0].clone(),
+                    // convert empty `Addition` to `0`
+                    terms if terms.len() == 0 => Integer (BigInt::from(0)),
+                    // reduce other `Addition`s
+                    terms => {
+                        let mut integer_sum: BigInt = BigInt::ZERO;
+                        let mut other_terms: Vec<Expression> = Vec::new();
+                        for term in terms {
+                            match term {
+                                Integer (integer) => integer_sum += integer,
+                                other => other_terms.push(other.clone()),
+                            }
+                        }
+                        if integer_sum == BigInt::ZERO {
+                            if other_terms.is_empty() { return Integer (BigInt::ZERO) }
+                        } else { other_terms.push(Integer (integer_sum)) }
+                        Addition (other_terms)
+                    }
+                }
+            }
+            Subtraction (terms) => {
+                let left: Expression = terms.0.reduce();
+                let right: Expression = terms.1.reduce();
+                match (&left, &right) {
+                    // subtract integers
+                    (Integer (left), Integer(right)) => Integer (left - right),
+                    _ => Subtraction (Box::new((left, right))),
+                }
+            }
+            Multiplication (factors) => {
+                let factors: Vec<Self> = factors.into_iter()
+                    .map(|factor| factor.reduce())
+                    .collect();
+                match factors {
+                    // remove unnecessary `Multiplication` from single term
+                    factors if factors.len() == 1 => factors[0].clone(),
+                    // convert empty `Multiplication` to `0`
+                    factors if factors.len() == 0 => Integer (BigInt::from(0)),
+                    // reduce other `Multiplication`s
+                    terms => {
+                        let mut integer_product: BigInt = BigInt::from(1);
+                        let mut other_terms: Vec<Expression> = Vec::new();
+                        for term in terms {
+                            match term {
+                                Integer (integer) => integer_product *= integer,
+                                other => other_terms.push(other.clone()),
+                            }
+                        }
+                        if integer_product == BigInt::ZERO {
+                            return Integer (BigInt::ZERO);
+                        } else if integer_product != BigInt::from(1) {
+                            other_terms.push(Integer (integer_product));
+                        }
+                        Multiplication (other_terms)
+                    }
+                }
+            }
+            Division (terms) => {
+                let dividend: Expression = terms.0.reduce();
+                let divisor: Expression = terms.1.reduce();
+                match (&dividend, &divisor) {
+                    // reduce fractions
+                    (Integer (numerator), Integer (denominator)) => {
+                        let gcd: BigInt = numerator.gcd(&denominator);
+                        let numerator: BigInt = numerator / &gcd;
+                        let denominator: BigInt = denominator / &gcd;
+                        if denominator == BigInt::from(1) { Integer (numerator) } else {
+                            Division (Box::new((Integer (numerator), Integer (denominator))))
                         }
                     }
-                    if integer_sum == BigInt::ZERO {
-                        if other_terms.is_empty() { return Integer (BigInt::ZERO) }
-                    } else { other_terms.push(Integer (integer_sum)) }
-                    Addition (other_terms)
+                    _ => Division (Box::new((dividend, divisor))),
                 }
             }
-            Subtraction (terms) => match *terms {
-                // subtract integers
-                (Integer (left), Integer(right)) => Integer (left - right),
-                _ => Subtraction (terms)
-            }
-            Multiplication (factors) => match factors {
-                // remove unnecessary `Multiplication` from single term
-                factors if factors.len() == 1 => factors[0].clone(),
-                // convert empty `Multiplication` to `0`
-                factors if factors.len() == 0 => Integer (BigInt::from(0)),
-                // reduce other `Multiplication`s
-                terms => {
-                    let mut integer_product: BigInt = BigInt::from(1);
-                    let mut other_terms: Vec<Expression> = Vec::new();
-                    for term in terms {
-                        match term {
-                            Integer (integer) => integer_product *= integer,
-                            other => other_terms.push(other.clone()),
-                        }
-                    }
-                    if integer_product == BigInt::ZERO {
-                        return Integer (BigInt::ZERO);
-                    } else if integer_product != BigInt::from(1) {
-                        other_terms.push(Integer (integer_product));
-                    }
-                    Multiplication (other_terms)
-                }
-            }
-            Division (terms) => match *terms {
-                // reduce fractions
-                (Integer (numerator), Integer (denominator)) => {
-                    let gcd: BigInt = numerator.gcd(&denominator);
-                    let numerator: BigInt = numerator / &gcd;
-                    let denominator: BigInt = denominator / &gcd;
-                    if denominator == BigInt::from(1) { Integer (numerator) } else {
-                        Division (Box::new((Integer (numerator), Integer (denominator))))
-                    }
-                }
-                _ => Division (terms)
+            Power (terms) => {
+                let base: Expression = terms.0.reduce();
+                let exponent: Expression = terms.1.reduce();
+                Power (Box::new((base, exponent)))
             }
             other => other
         }
