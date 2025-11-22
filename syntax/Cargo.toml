@@ -1,0 +1,11 @@
+# Copyright Rob Gage 2025
+
+[package]
+name = "syntax"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+core = { version = "0.0.0", path = "../core" }
+num-bigint = "0.4.6"
+pups = "0.1.13"

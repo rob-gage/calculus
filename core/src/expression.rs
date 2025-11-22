@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 
 /// An algebraic expression
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum Expression {
     /// Addition of subexpressions
     Addition (Vec<Expression>),

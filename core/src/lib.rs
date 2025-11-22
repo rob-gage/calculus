@@ -2,4 +2,4 @@
 
 mod expression;
 
-use expression::Expression;
+pub use expression::Expression;
