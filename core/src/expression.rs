@@ -4,20 +4,30 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 
 /// An algebraic expression
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone)]
 pub enum Expression {
-    /// Addition of subexpressions
+
+    /// Addition of terms
     Addition (Vec<Expression>),
-    /// Subtraction of subexpressions
+    /// Subtraction of a term from another
     Subtraction (Box<(Expression, Expression)>),
-    /// Multiplication of subexpressions
+    /// Multiplication of terms
     Multiplication (Vec<Expression>),
-    /// Division of subexpressions
+    /// Division of a term by another
     Division (Box<(Expression, Expression)>),
+
+    /// Exponentiation of a term to another as a power
+    Power (Box<(Expression, Expression)>),
+    /// Application of the exponential function to a term
+    Exponential (Box<Expression>),
+    /// Application of the natural logarithm function to a term
+    Logarithm (Box<Expression>),
+
     /// A variable
     Variable (String),
     /// An integer
     Integer (BigInt),
+
 }
 
 impl Expression {
@@ -86,8 +96,6 @@ impl Expression {
                 }
             }
             Subtraction (terms) => match *terms {
-                // difference is zero
-                (left, right) if left == right => Integer (BigInt::ZERO),
                 // subtract integers
                 (Integer (left), Integer(right)) => Integer (left - right),
                 _ => Subtraction (terms)
@@ -134,18 +142,23 @@ impl Expression {
     /// Differentiates this `Expression` with respect to a variable
     pub fn differentiate(&self, variable: &str) -> Self {
         use Expression::*;
-        let reduced: Self = self.clone().reduce();
         match self {
+            // identity rule
             Variable (name) if name == variable => Integer (BigInt::from(1)),
+            // variable rule
             Variable (_) => Integer (BigInt::from(0)),
+            // constant rule
             Integer (_) => Integer (BigInt::from(0)),
+            // sum rule
             Addition (terms) => Addition (terms.iter()
                 .map(|operand| operand.differentiate(variable))
                 .collect()
             ),
+            // difference rule
             Subtraction (terms) => Subtraction (Box::new((
                 terms.0.differentiate(variable), terms.1.differentiate(variable)
             ))),
+            // product rule
             Multiplication (factors) => Addition (factors.iter()
                 .enumerate()
                 .map(|(factor_index, factor)| {
@@ -160,13 +173,57 @@ impl Expression {
                 })
                 .collect()
             ),
+            // quotient rule
             Division (terms) => Division (Box::new((
                 Subtraction (Box::new((
                     Multiplication (vec![terms.0.differentiate(variable), terms.1.clone()]),
                     Multiplication (vec![terms.0.clone(), terms.1.differentiate(variable)]),
                 ))),
                 Multiplication (vec![terms.1.clone(), terms.1.clone()])
-            )))
+            ))),
+            // power rules
+            Power (terms) => match *terms.clone() {
+                // known base shortcut
+                (Integer (base), exponent) => Multiplication(vec![
+                    Power (Box::new((Integer (base.clone()), exponent.clone()))),
+                    Logarithm (Box::new(Integer (base))),
+                    exponent.differentiate(variable)
+                ]),
+                // known exponent shortcut
+                (base, Integer (exponent)) => if exponent == BigInt::ZERO {
+                    Integer (BigInt::ZERO)
+                } else if exponent == BigInt::from(1) {
+                    base.differentiate(variable)
+                } else { Multiplication (vec![
+                    Integer (exponent.clone()),
+                    Power (Box::new ((base.clone(), Integer (exponent - 1)))),
+                    base.differentiate(variable)
+                ])},
+                // general power rule
+                (base, exponent) => Multiplication (vec![
+                    Power (Box::new((base.clone(), exponent.clone()))),
+                    Addition (vec![
+                        Multiplication (vec![
+                            exponent.differentiate(variable),
+                            Logarithm (Box::new(base.clone()))
+                        ]),
+                        Multiplication (vec![
+                            exponent,
+                            Division(Box::new((base.differentiate(variable), base)))
+                        ])
+                    ])
+                ])
+            }
+            // exponential rule
+            Exponential (term) => Multiplication (vec![
+                Exponential (term.clone()),
+                term.differentiate(variable)
+            ]),
+            // logarithm rule
+            Logarithm (term) => Division (Box::new((
+                term.differentiate(variable),
+                *term.clone(),
+            ))),
         }.reduce()
     }
 
