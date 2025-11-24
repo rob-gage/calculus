@@ -47,8 +47,6 @@ dependencies = [
 [[package]]
 name = "pups"
 version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a69ccdcce009e9bd98c49829eb48750cba7f90bb2b6b5ac627ba7003d1b2b5e5"
 dependencies = [
  "pups_core",
  "pups_text",
@@ -57,14 +55,10 @@ dependencies = [
 [[package]]
 name = "pups_core"
 version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "319527d6cf04942fc28253b1b8cc86a4d53b723f54683069028993433e4d420e"
 
 [[package]]
 name = "pups_text"
 version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93dfec0080c2fa55a2534399fb1d103e295274cb8b1b580c58cf8a99e3e3d51f"
 dependencies = [
  "pups_core",
  "unicode-ident",
