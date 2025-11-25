@@ -4,3 +4,4 @@ mod expression;
 mod namespace;
 
 pub use expression::Expression;
+pub type Syntax = Expression<String>;

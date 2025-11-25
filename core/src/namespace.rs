@@ -55,8 +55,27 @@ impl Namespace {
         }
     }
 
-    /// Displays an expression
-    pub fn display(&self)
+    // /// Displays an expression
+    // pub fn display(&self, expression: &Expression) -> String {
+    //     use Expression::*;
+    //     match self {
+    //         Addition (terms) => {
+    //             terms.into_iter().map(|term| self.display(term))
+    //         }
+    //         Multiplication (terms) => {
+    //             for index in 0..terms.len() {
+    //                 if index != 0 { f.write_str(" * ")?; }
+    //                 write!(f, "{}", terms[index])?;
+    //             }
+    //             Ok (())
+    //         }
+    //         Division (operands) => write!(f, "{} / {}", operands.0, operands.1),
+    //         Power (operands) => write!(f, "{} ^ {}", operands.0, operands.1),
+    //         Exponential (operand) => write!(f, "e ^ {}", operand),
+    //         Logarithm (operand) => write!(f, "ln({})", operand),
+    //         Variable (name) => f.write_str(name),
+    //         Integer (integer) => f.write_str(&integer.to_string()),
+    // }
 
 
 }
