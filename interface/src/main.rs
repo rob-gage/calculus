@@ -23,7 +23,7 @@ fn main() {
                 println!("\nParsed: {}\n", expression);
                 println!(
                     "Differentiated: {}\n\n",
-                    expression.differentiate(variable_string.trim())
+                    expression.differentiate(&variable_string.trim().to_string())
                 );
             }
             Err (_) => println!("\nInvalid expression\n\n"),

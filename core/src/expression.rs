@@ -10,30 +10,35 @@ use num_integer::Integer;
 
 /// An algebraic expression
 #[derive(Clone)]
-pub enum Expression {
+pub enum Expression<I: Clone + Eq + PartialEq = usize> {
 
     /// Addition of terms
-    Addition (Vec<Expression>),
+    Addition (Vec<Expression<I>>),
+
     /// Multiplication of terms
-    Multiplication (Vec<Expression>),
+    Multiplication (Vec<Expression<I>>),
+
     /// Division of a term by another
-    Division (Box<(Expression, Expression)>),
+    Division (Box<(Expression<I>, Expression<I>)>),
 
     /// Exponentiation of a term to another as a power
-    Power (Box<(Expression, Expression)>),
+    Power (Box<(Expression<I>, Expression<I>)>),
+
     /// Application of the exponential function to a term
-    Exponential (Box<Expression>),
+    Exponential (Box<Expression<I>>),
+
     /// Application of the natural logarithm function to a term
-    Logarithm (Box<Expression>),
+    Logarithm (Box<Expression<I>>),
 
     /// A variable
-    Variable (String),
+    Variable (I),
+
     /// An integer
     Integer (BigInt),
 
 }
 
-impl Expression {
+impl<I: Clone + Eq + PartialEq> Expression<I> {
 
     /// Reduce an `Expression`, or returns it unchanged if not reducible
     pub fn reduce(self) -> Self {
@@ -56,7 +61,7 @@ impl Expression {
                     // reduce other `Addition`s
                     terms => {
                         let mut integer_sum: BigInt = BigInt::ZERO;
-                        let mut other_terms: Vec<Expression> = Vec::new();
+                        let mut other_terms: Vec<Expression<I>> = Vec::new();
                         for term in terms {
                             match term {
                                 Integer (integer) => integer_sum += integer,
@@ -87,7 +92,7 @@ impl Expression {
                     // reduce other `Multiplication`s
                     terms => {
                         let mut integer_product: BigInt = BigInt::from(1);
-                        let mut other_terms: Vec<Expression> = Vec::new();
+                        let mut other_terms: Vec<Expression<I>> = Vec::new();
                         for term in terms {
                             match term {
                                 Integer (integer) => integer_product *= integer,
@@ -104,8 +109,8 @@ impl Expression {
                 }
             }
             Division (terms) => {
-                let dividend: Expression = terms.0.reduce();
-                let divisor: Expression = terms.1.reduce();
+                let dividend: Expression<I> = terms.0.reduce();
+                let divisor: Expression<I> = terms.1.reduce();
                 match (&dividend, &divisor) {
                     // reduce fractions
                     (Integer (numerator), Integer (denominator)) => {
@@ -120,8 +125,8 @@ impl Expression {
                 }
             }
             Power (terms) => {
-                let base: Expression = terms.0.reduce();
-                let exponent: Expression = terms.1.reduce();
+                let base: Expression<I> = terms.0.reduce();
+                let exponent: Expression<I> = terms.1.reduce();
                 Power (Box::new((base, exponent)))
             }
             other => other
@@ -129,11 +134,11 @@ impl Expression {
     }
 
     /// Differentiates this `Expression` with respect to a variable
-    pub fn differentiate(&self, variable: &str) -> Self {
+    pub fn differentiate(&self, variable: &I) -> Self {
         use Expression::*;
         match self {
             // identity rule
-            Variable (name) if name == variable => Integer (BigInt::from(1)),
+            Variable (identifier) if identifier == variable => Integer (BigInt::from(1)),
             // variable rule
             Variable (_) => Integer (BigInt::from(0)),
             // constant rule
@@ -147,7 +152,7 @@ impl Expression {
             Multiplication (factors) => Addition (factors.iter()
                 .enumerate()
                 .map(|(factor_index, factor)| {
-                    let mut output: Vec<Expression> = Vec::with_capacity(factors.len());
+                    let mut output: Vec<Expression<I>> = Vec::with_capacity(factors.len());
                     output.push(factor.differentiate(variable));
                     for index in 0..factors.len() {
                         if index != factor_index {
@@ -209,39 +214,6 @@ impl Expression {
                 term.differentiate(variable),
                 *term.clone(),
             ))),
-        }
-    }
-
-}
-
-impl Display for Expression {
-
-    fn fmt(&self, f: &mut Formatter<'_>) -> FormatResult {
-        use Expression::*;
-        match self {
-            Addition (terms) => {
-                println!("terms: {}", terms.len());
-                let mut first: bool = true;
-                for term in terms {
-                    if !first { f.write_str(" + ")?; }
-                    write!(f, "{}", term)?;
-                    first = false;
-                }
-                Ok (())
-            }
-            Multiplication (terms) => {
-                for index in 0..terms.len() {
-                    if index != 0 { f.write_str(" * ")?; }
-                    write!(f, "{}", terms[index])?;
-                }
-                Ok (())
-            }
-            Division (operands) => write!(f, "{} / {}", operands.0, operands.1),
-            Power (operands) => write!(f, "{} ^ {}", operands.0, operands.1),
-            Exponential (operand) => write!(f, "e ^ {}", operand),
-            Logarithm (operand) => write!(f, "ln({})", operand),
-            Variable (name) => f.write_str(name),
-            Integer (integer) => f.write_str(&integer.to_string()),
         }
     }
 
