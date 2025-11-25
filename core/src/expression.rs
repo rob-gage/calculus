@@ -14,8 +14,6 @@ pub enum Expression {
 
     /// Addition of terms
     Addition (Vec<Expression>),
-    /// Subtraction of a term from another
-    Subtraction (Box<(Expression, Expression)>),
     /// Multiplication of terms
     Multiplication (Vec<Expression>),
     /// Division of a term by another
@@ -53,7 +51,6 @@ impl Expression {
                 }
                 Addition (flattened)
             },
-            Subtraction (terms) => Subtraction(Box::new((terms.0.flatten(), terms.1.flatten()))),
             Multiplication (terms) => {
                 let mut flattened: Vec<Expression> = Vec::new();
                 for term in terms {
@@ -103,15 +100,6 @@ impl Expression {
                         } else { other_terms.push(Integer (integer_sum)) }
                         Addition (other_terms)
                     }
-                }
-            }
-            Subtraction (terms) => {
-                let left: Expression = terms.0.reduce();
-                let right: Expression = terms.1.reduce();
-                match (&left, &right) {
-                    // subtract integers
-                    (Integer (left), Integer(right)) => Integer (left - right),
-                    _ => Subtraction (Box::new((left, right))),
                 }
             }
             Multiplication (factors) => {
@@ -182,10 +170,6 @@ impl Expression {
                 .map(|operand| operand.differentiate(variable))
                 .collect()
             ),
-            // difference rule
-            Subtraction (terms) => Subtraction (Box::new((
-                terms.0.differentiate(variable), terms.1.differentiate(variable)
-            ))),
             // product rule
             Multiplication (factors) => Addition (factors.iter()
                 .enumerate()
@@ -203,10 +187,10 @@ impl Expression {
             ),
             // quotient rule
             Division (terms) => Division (Box::new((
-                Subtraction (Box::new((
+                Addition (vec![
                     Multiplication (vec![terms.0.differentiate(variable), terms.1.clone()]),
                     Multiplication (vec![terms.0.clone(), terms.1.differentiate(variable)]),
-                ))),
+                ]),
                 Multiplication (vec![terms.1.clone(), terms.1.clone()])
             ))),
             // power rules
@@ -263,9 +247,12 @@ impl Display for Expression {
         use Expression::*;
         match self {
             Addition (terms) => {
-                for index in 0..terms.len() {
-                    if index != 0 { f.write_str(" + ")?; }
-                    write!(f, "{}", terms[index])?;
+                println!("terms: {}", terms.len());
+                let mut first: bool = true;
+                for term in terms {
+                    if !first { f.write_str(" + ")?; }
+                    write!(f, "{}", term)?;
+                    first = false;
                 }
                 Ok (())
             }
@@ -282,7 +269,6 @@ impl Display for Expression {
             Logarithm (operand) => write!(f, "ln({})", operand),
             Variable (name) => f.write_str(name),
             Integer (integer) => f.write_str(&integer.to_string()),
-            _ => f.write_str("<unknown>")
         }
     }
 

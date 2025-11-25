@@ -15,26 +15,28 @@ pub fn parse_expression(syntax: &str) -> Result<Expression, ()> {
 /// Parses an `Expression` from syntax
 fn expression(input: &Text) -> Result<Expression, ()> {
     choice((
-        tertiary.then_ignore(
-            delimited(
-                whitespace().or_not(),
-                token("-"),
-                whitespace().or_not()
-            )
-        ).then(tertiary)
-            .map(|(left, right)| Expression::Subtraction (Box::new((left, right)))),
-        // `Addition`
-        separated(
-            tertiary,
-            delimited(
-                whitespace().or_not(),
-                token("+"),
-                whitespace().or_not(),
-            ),
-        )
-            .map(|terms| Expression::Addition (terms)),
-    )).parse(input)
+        tertiary,
+        token("-").then(whitespace().or_not()).ignore_then(tertiary)
+            .map(|negative| Expression::Multiplication(vec![
+                negative, Expression::Integer (BigInt::from(-1))
+            ])),
+    )).then(
+        repeated(whitespace().or_not().ignore_then(choice((
+            token("+").emit(true),
+            token("-").emit(false),
+        )).then_ignore(whitespace().or_not()).then(tertiary)))
+            .map(|vector| vector.into_iter().map(|(positive, term)|
+                if positive { term } else { Expression::Multiplication(vec![
+                Expression::Integer (BigInt::from(-1)), term
+            ]) }).collect::<Vec<Expression>>())
+    ).map(|(first, rest)| {
+            let mut terms = vec![first];
+            terms.extend(rest);
+            Expression::Addition (terms)
+        })
+        .parse(input)
 }
+
 
 /// Parses a tertiary syntax element (factors, dividends, divisors)
 fn tertiary(input: &Text) -> Result<Expression, ()> {
@@ -49,7 +51,7 @@ fn tertiary(input: &Text) -> Result<Expression, ()> {
         ).then(secondary)
             .map(|(dividend, divisor)| Expression::Division (Box::new((dividend, divisor)))),
         // `Multiplication`
-        separated(
+        separated_at_least_once(
             secondary,
             delimited(
                 whitespace().or_not(),
@@ -60,6 +62,7 @@ fn tertiary(input: &Text) -> Result<Expression, ()> {
             .map(|factors| Expression::Multiplication (factors))
     )).parse(input)
 }
+
 
 /// Parses a secondary syntax element (bases, exponents)
 fn secondary(input: &Text) -> Result<Expression, ()> {
@@ -76,6 +79,7 @@ fn secondary(input: &Text) -> Result<Expression, ()> {
         primary
     )).parse(input)
 }
+
 
 /// Parses a primary syntax element (named functions, variables, integers, parentheses)
 fn primary(input: &Text) -> Result<Expression, ()> {
@@ -95,10 +99,7 @@ fn primary(input: &Text) -> Result<Expression, ()> {
         )
             .map(|term| Expression::Logarithm (Box::new(term))),
         // `Integer`
-        token("-").or_not().then(number())
-            .map(|(sign, number)| Expression::Integer (BigInt::from_str(number).unwrap()
-                * BigInt::from(if sign.is_some() { -1 } else { 1 }))
-            ),
+        number().map(|number| Expression::Integer (BigInt::from_str(number).unwrap())),
         // `Variable`
         unicode_identifier()
             .map(|identifier: &str| Expression::Variable (identifier.to_string())),
