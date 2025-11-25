@@ -1,5 +1,5 @@
 # Copyright Rob Gage 2025
 
 [workspace]
-members = ["core", "interface", "syntax"]
+members = ["core", "interface", "syntax", "web-interface"]
 resolver = "2"
