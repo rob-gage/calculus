@@ -1,0 +1,10 @@
+# Copyright Rob Gage 2025
+
+[package]
+name = "interface"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+core = { version = "0.0.0", path = "../core" }
+syntax = { version = "0.0.0", path = "../syntax" }

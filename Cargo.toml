@@ -1,5 +1,5 @@
 # Copyright Rob Gage 2025
 
 [workspace]
-members = ["core", "syntax"]
+members = ["core", "interface", "syntax"]
 resolver = "2"

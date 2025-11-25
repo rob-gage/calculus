@@ -1,5 +1,10 @@
 // Copyright Rob Gage 2025
 
+use std::fmt::{
+    Display,
+    Formatter,
+    Result as FormatResult,
+};
 use num_bigint::BigInt;
 use num_integer::Integer;
 
@@ -247,7 +252,38 @@ impl Expression {
                 term.differentiate(variable),
                 *term.clone(),
             ))),
-        }.reduce()
+        }
+    }
+
+}
+
+impl Display for Expression {
+
+    fn fmt(&self, f: &mut Formatter<'_>) -> FormatResult {
+        use Expression::*;
+        match self {
+            Addition (terms) => {
+                for index in 0..terms.len() {
+                    if index != 0 { f.write_str(" + ")?; }
+                    write!(f, "{}", terms[index])?;
+                }
+                Ok (())
+            }
+            Multiplication (terms) => {
+                for index in 0..terms.len() {
+                    if index != 0 { f.write_str(" * ")?; }
+                    write!(f, "{}", terms[index])?;
+                }
+                Ok (())
+            }
+            Division (operands) => write!(f, "{} / {}", operands.0, operands.1),
+            Power (operands) => write!(f, "{} ^ {}", operands.0, operands.1),
+            Exponential (operand) => write!(f, "e ^ {}", operand),
+            Logarithm (operand) => write!(f, "ln({})", operand),
+            Variable (name) => f.write_str(name),
+            Integer (integer) => f.write_str(&integer.to_string()),
+            _ => f.write_str("<unknown>")
+        }
     }
 
 }
