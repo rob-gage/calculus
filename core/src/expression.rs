@@ -35,50 +35,18 @@ pub enum Expression {
 
 impl Expression {
 
-    /// Flattens a potentially nested `Expression`, or returns it unchanged if not nested
-    fn flatten(self) -> Self {
+    /// Reduce an `Expression`, or returns it unchanged if not reducible
+    pub fn reduce(self) -> Self {
         use Expression::*;
         match self {
             Addition (terms) => {
-                let mut flattened: Vec<Expression> = Vec::new();
-                for term in terms {
-                    match term {
-                        Addition (addition_terms) => flattened.extend(
-                            addition_terms.into_iter().map(|term| term.flatten())
-                        ),
-                        other => flattened.push(other.flatten()),
-                    }
-                }
-                Addition (flattened)
-            },
-            Multiplication (terms) => {
-                let mut flattened: Vec<Expression> = Vec::new();
-                for term in terms {
-                    match term {
-                        Multiplication (multiplication_terms) => flattened.extend(
-                            multiplication_terms.into_iter().map(|term| term.flatten())
-                        ),
-                        other => flattened.push(other.flatten()),
-                    }
-                }
-                Multiplication (flattened)
-            }
-            Division (terms) => Division(Box::new((
-                terms.0.flatten(),
-                terms.1.flatten(),
-            ))),
-            other => other,
-        }
-    }
-
-    /// Reduce an `Expression`, or returns it unchanged if not reducible
-    fn reduce(self) -> Self {
-        use Expression::*;
-        let flattened: Self = self.flatten();
-        match flattened {
-            Addition (terms) => {
                 let terms: Vec<Self> = terms.into_iter()
-                    .map(|term| term.reduce())
+                    .flat_map(|term| match term {
+                        Addition (terms) => terms.into_iter()
+                            .map(|term| term.reduce())
+                            .collect(),
+                        other => vec![other.reduce()]
+                    })
                     .collect();
                 match terms {
                     // remove unnecessary `Addition` from single term
@@ -104,7 +72,12 @@ impl Expression {
             }
             Multiplication (factors) => {
                 let factors: Vec<Self> = factors.into_iter()
-                    .map(|factor| factor.reduce())
+                    .flat_map(|term| match term {
+                        Multiplication (factors) => factors.into_iter()
+                            .map(|term| term.reduce())
+                            .collect(),
+                        other => vec![other.reduce()]
+                    })
                     .collect();
                 match factors {
                     // remove unnecessary `Multiplication` from single term

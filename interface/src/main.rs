@@ -21,7 +21,10 @@ fn main() {
         match parse_expression(&expression_string) {
             Ok (expression) => {
                 println!("\nParsed: {}\n", expression);
-                println!("Differentiated: {}\n\n", expression.differentiate(variable_string.trim()));
+                println!(
+                    "Differentiated: {}\n\n",
+                    expression.differentiate(variable_string.trim())
+                );
             }
             Err (_) => println!("\nInvalid expression\n\n"),
         };
