@@ -10,13 +10,14 @@ use leptos::{
     prelude::*,
     mount::mount_to_body,
 };
+use leptos::tachys::html::style::IntoStyle;
 use syntax::parse_expression;
 
 #[component]
 pub fn App() -> impl IntoView {
 
-    let (formula_string, set_formula_string) = signal("".to_string());
-    let formula = move || parse_expression(&formula_string.get()).ok();
+    let formula_string = RwSignal::new("x".to_string());
+    let formula = move || parse_expression(formula_string.get().trim()).ok();
     let derived_formula = move || formula()
         .map(|expression| expression.differentiate(&"x".to_string()));
 
@@ -29,14 +30,20 @@ pub fn App() -> impl IntoView {
             <div>
                 <input
                     type="text"
-                    on:input:target=move |event| set_formula_string.set(event.target().value())
+                    bind:value=formula_string
                     placeholder="Enter formula"
                     style="padding: 0.5rem; min-width: 300px;"
                 />
             </div>
             <div style="display: flex; flex-direction: row;">
-                <div style="margin: auto;"></div>
-                <div style="margin: auto"></div>
+                <div style="margin-right: 20px;"><span>{ move ||
+                    if let Some (formula) = formula() { format!("{}", formula) }
+                    else { formula_string.get() }
+                }</span></div>
+                <div style="margin: auto"><span>{ move ||
+                    if let Some (formula) = derived_formula() { format!("{}", formula) }
+                    else { "missing".to_string() }
+                }</span></div>
             </div>
             <div>
                 <Graph />
