@@ -2,28 +2,46 @@
 
 mod function_list;
 mod graph;
+mod math;
 
 use graph::Graph;
+use math::Math;
 
 use engine::Expression;
 use leptos::{
     prelude::*,
     mount::mount_to_body,
 };
-use leptos::tachys::html::style::IntoStyle;
+use wasm_bindgen::prelude::wasm_bindgen;
 use syntax::parse_expression;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = katex, js_name = render)]
+    fn katex_render(src: &str, element: web_sys::Element);
+}
 
 #[component]
 pub fn App() -> impl IntoView {
 
     let formula_string = RwSignal::new("x".to_string());
-    let formula = move || parse_expression(formula_string.get().trim()).ok();
+    let formula = move || parse_expression(formula_string.get().trim()).ok().map(|e| e.reduce());
     let derived_formula = move || formula()
-        .map(|expression| expression.differentiate(&"x".to_string()));
+        .map(|expression| expression.differentiate(&"x".to_string()).reduce());
 
+    let latex = Signal::derive(move || formula()
+        .map(|f| format!("{}", f)).unwrap_or("".to_string()));
+    let derived_latex = Signal::derive(move || derived_formula()
+        .map(|f| format!("{}", f)).unwrap_or("".to_string()));
     
     view! {
-        <div style="display: flex; flex-direction: column; align-items: center;">
+        <div style="
+            margin: auto;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        ">
             <div>
                 <h1>{r"Rob's Differentiation Engine"}</h1>
             </div>
@@ -31,19 +49,17 @@ pub fn App() -> impl IntoView {
                 <input
                     type="text"
                     bind:value=formula_string
-                    placeholder="Enter formula"
+                    placeholder="(10 + exp(x))/x^2"
                     style="padding: 0.5rem; min-width: 300px;"
                 />
             </div>
-            <div style="display: flex; flex-direction: row;">
-                <div style="margin-right: 20px;"><span>{ move ||
-                    if let Some (formula) = formula() { format!("{}", formula) }
-                    else { formula_string.get() }
-                }</span></div>
-                <div style="margin: auto"><span>{ move ||
-                    if let Some (formula) = derived_formula() { format!("{}", formula) }
-                    else { "missing".to_string() }
-                }</span></div>
+            <div style="width: 100%; display: flex; flex-direction: row;">
+                <div style="width: 50%;">
+                    <Math latex=latex  />
+                </div>
+                <div style="width: 50%;">
+                    <Math latex=derived_latex  />
+                </div>
             </div>
             <div>
                 <Graph />
