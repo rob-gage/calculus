@@ -13,9 +13,14 @@ pub fn App() -> impl IntoView {
     view! {
 
 <div style="display: flex; flex-direction: column; align-items: center;">
-    <div>"Hello world!"</div>
     <div>
-        <Graph/>
+        <h1>{r"Rob's Differentiation Engine"}</h1>
+    </div>
+    <div>
+
+    </div>
+    <div>
+        <Graph />
     </div>
 </div>
 

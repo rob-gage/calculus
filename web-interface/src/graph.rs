@@ -20,14 +20,12 @@ pub fn Graph() -> impl IntoView {
 
     // Redraw whenever limits change
     Effect::new(move || {
-        println!("test");
-        web_sys::console::log_1(&"Canvas found, effect running!".into());
         // canvas
         let Some (canvas) = canvas_reference.get() else { panic!() };
         let backend: CanvasBackend = CanvasBackend::with_canvas_object(canvas)
             .expect("Failed to create `CanvasBackend`");
         let root = backend.into_drawing_area();
-        root.fill(&BLACK).unwrap();
+        root.fill(&WHITE).unwrap();
 
         // graph
         let mut chart = ChartBuilder::on(&root)
@@ -36,17 +34,20 @@ pub fn Graph() -> impl IntoView {
             .y_label_area_size(40)
             .build_cartesian_2d(
                 minimum_x.get()..maximum_x.get(),
-                minimum_y.get()..minimum_y.get()
+                minimum_y.get()..maximum_y.get()
             )
             .unwrap();
-        chart.configure_mesh().draw().unwrap();
+        chart.configure_mesh()
+            .x_labels(20)
+            .y_labels(20)
+            .draw().unwrap();
 
         root.present().unwrap();
     });
 
     view! {
 
-<div class="graph-container">
+<div class="graph-container" style="width: 100%;">
     <canvas
         node_ref=canvas_reference
         width="500"
