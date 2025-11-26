@@ -241,7 +241,7 @@ impl Display for Expression<String> {
             }
             Division (operands) => write!(
                 f,
-                "\\frac{{\\raisebox{{0ex}}{}}}{{\\raisebox{{-0.3ex}}{}}}",
+                "\\displaystyle \\frac{{{}}}{{{}}}",
                 operands.0,operands.1),
             Power (operands) => write!(f, "{}^{{{}}}", operands.0, operands.1),
             Exponential (operand) => write!(f, "e^{{{}}}", operand),
