@@ -129,7 +129,13 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
             Power (terms) => {
                 let base: Expression<I> = terms.0.reduce();
                 let exponent: Expression<I> = terms.1.reduce();
-                Power (Box::new((base, exponent)))
+                match (&base, &exponent) {
+                    (Integer (base), Integer (exponent))
+                    if exponent <= &BigInt::from(u32::MAX)
+                    && exponent >= &BigInt::ZERO =>
+                        Integer (base.pow(exponent.to_u32_digits().1[0])),
+                    _ => Power (Box::new((base, exponent)))
+                }
             }
             other => other
         }
