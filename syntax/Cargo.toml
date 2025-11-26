@@ -6,6 +6,6 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-core = { version = "0.0.0", path = "../core" }
+engine = { version = "0.0.0", path = "../engine" }
 num-bigint = "0.4.6"
 pups = { version = "0.1.14", path = "../../pups/library" }

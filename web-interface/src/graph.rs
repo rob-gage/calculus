@@ -38,8 +38,8 @@ pub fn Graph() -> impl IntoView {
             )
             .unwrap();
         chart.configure_mesh()
-            .x_labels(20)
-            .y_labels(20)
+            .x_labels(10)
+            .y_labels(10)
             .draw().unwrap();
 
         root.present().unwrap();
