@@ -4,9 +4,11 @@ use std::fmt::{
     Display,
     Formatter,
     Result as FormatResult,
+    Write,
 };
 use num_bigint::BigInt;
 use num_integer::Integer;
+use crate::expression;
 
 /// An algebraic expression
 #[derive(Clone)]
@@ -217,4 +219,35 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
         }
     }
 
+}
+
+impl Display for Expression<String> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FormatResult {
+        use Expression::*;
+        match self {
+            Addition (terms) => {
+                for index in 0..terms.len() {
+                    if index != 0 { f.write_str(" + ")?; }
+                    write!(f, "{}", terms[index])?;
+                }
+                Ok(())
+            }
+            Multiplication (terms) => {
+                for index in 0..terms.len() {
+                    if index != 0 { f.write_str(" \\cdot ")?; }
+                    write!(f, "{}", terms[index])?;
+                }
+                Ok(())
+            }
+            Division (operands) => write!(
+                f,
+                "\\frac{{\\raisebox{{0ex}}{}}}{{\\raisebox{{-0.3ex}}{}}}",
+                operands.0,operands.1),
+            Power (operands) => write!(f, "{}^{{{}}}", operands.0, operands.1),
+            Exponential (operand) => write!(f, "e^{{{}}}", operand),
+            Logarithm (operand) => write!(f, "\\ln({})", operand),
+            Variable (name) => f.write_str(name),
+            Integer (integer) => f.write_str(&integer.to_string()),
+        }
+    }
 }
