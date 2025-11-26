@@ -1,7 +1,7 @@
 // Copyright Rob Gage 2025
 
 use num_bigint::BigInt;
-use core::Syntax;
+use engine::Syntax;
 use pups::*;
 use std::str::FromStr;
 
