@@ -51,7 +51,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
     pub fn evaluate(&self, variable: &I, values: &[f64]) -> Result<Vec<f64>, ()> {
         match self {
             Expression::Addition (terms) => {
-                let mut output: Vec<f64> = vec![0.0; terms.len()];
+                let mut output: Vec<f64> = vec![0.0; values.len()];
                 for term in terms {
                     let term_values: Vec<f64> = term.evaluate(variable, values)?;
                     for (a, b) in output.iter_mut().zip(term_values) {
@@ -61,7 +61,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                 Ok (output)
             }
             Expression::Multiplication (factors) => {
-                let mut output: Vec<f64> = vec![1.0; factors.len()];
+                let mut output: Vec<f64> = vec![1.0; values.len()];
                 for factor in factors {
                     let term_values: Vec<f64> = factor.evaluate(variable, values)?;
                     for (a, b) in output.iter_mut().zip(term_values) {

@@ -61,11 +61,11 @@ pub fn Graph(
                     .draw_series(LineSeries::new(
                         x_values.iter()
                             .zip(y_values.iter())
-                            .map(|(x, y)| (*x, *y))
-                            .filter(|(x, y)|
-                                x >= &minimum_x.get() && x <= &maximum_x.get()
-                                && y >= &minimum_y.get() && y <= &maximum_y.get()
-                            ),
+                            .map(|(x, y)| (*x, *y)),
+                            // .filter(|(x, y)|
+                            //     x >= &minimum_x.get() && x <= &maximum_x.get()
+                            //     && y >= &minimum_y.get() && y <= &maximum_y.get()
+                            // ),
                         &BLUE,
                     ))
                     .unwrap()
@@ -77,11 +77,11 @@ pub fn Graph(
                         .draw_series(LineSeries::new(
                             x_values.iter()
                                 .zip(derivative_y_values.iter())
-                                .map(|(x, y)| (*x, *y))
-                                .filter(|(x, y)|
-                                    x >= &minimum_x.get() && x <= &maximum_x.get()
-                                        && y >= &minimum_y.get() && y <= &maximum_y.get()
-                                ),
+                                .map(|(x, y)| (*x, *y)),
+                                // .filter(|(x, y)|
+                                //     x >= &minimum_x.get() && x <= &maximum_x.get()
+                                //         && y >= &minimum_y.get() && y <= &maximum_y.get()
+                                // ),
                             &RED,
                         ))
 
