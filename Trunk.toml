@@ -1,7 +1,6 @@
 # Copyright Rob Gage 2025
 
 [build]
-public_url="calculus.dogwood.cloud"
 target = "web-interface/index.html"
 dist = "docs"
 
