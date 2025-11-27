@@ -1,14 +1,17 @@
 // Copyright Rob Gage 2025
 
-use std::fmt::{
-    Display,
-    Formatter,
-    Result as FormatResult,
-    Write,
-};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use crate::expression;
+use std::{
+    f64::consts::E,
+    fmt::{
+        Display,
+        Formatter,
+        Result as FormatResult,
+        Write,
+    }
+};
+use num_traits::ToPrimitive;
 
 /// An algebraic expression
 #[derive(Clone)]
@@ -41,6 +44,62 @@ pub enum Expression<I: Clone + Eq + PartialEq = usize> {
 }
 
 impl<I: Clone + Eq + PartialEq> Expression<I> {
+
+    /// Evaluates an `Expression` with a list of input values for a given variable
+    ///
+    /// (This method requires that no other unsubstituted variables remain in the `Expression`)
+    pub fn evaluate(&self, variable: &I, values: &[f64]) -> Result<Vec<f64>, ()> {
+        match self {
+            Expression::Addition (terms) => {
+                let mut output: Vec<f64> = vec![0.0; terms.len()];
+                for term in terms {
+                    let term_values: Vec<f64> = term.evaluate(variable, values)?;
+                    for (a, b) in output.iter_mut().zip(term_values) {
+                        *a += b;
+                    }
+                }
+                Ok (output)
+            }
+            Expression::Multiplication (factors) => {
+                let mut output: Vec<f64> = vec![1.0; factors.len()];
+                for factor in factors {
+                    let term_values: Vec<f64> = factor.evaluate(variable, values)?;
+                    for (a, b) in output.iter_mut().zip(term_values) {
+                        *a *= b;
+                    }
+                }
+                Ok (output)
+            }
+            Expression::Division (operands) => Ok (
+                operands.0.evaluate(variable, values)?.into_iter()
+                    .zip(operands.1.evaluate(variable, values)?.into_iter())
+                    .map(|(a, b)| a / b)
+                    .collect()
+            ),
+            Expression::Power (operands) => Ok (
+                operands.0.evaluate(variable, values)?.into_iter()
+                    .zip(operands.1.evaluate(variable, values)?.into_iter())
+                    .map(|(a, b)| a.powf(b))
+                    .collect()
+            ),
+            Expression::Exponential (operand) => Ok (
+                operand.evaluate(variable, values)?.into_iter()
+                    .map(|value| E.powf(value))
+                    .collect()
+            ),
+            Expression::Logarithm (operand) => Ok (
+                operand.evaluate(variable, values)?.into_iter()
+                    .map(|value| value.ln())
+                    .collect()
+            ),
+            Expression::Variable (identifier) if identifier == variable => Ok (values.to_vec()),
+            Expression::Integer (integer) => {
+                let float: f64 = integer.to_f64().unwrap_or(f64::NAN);
+                Ok (vec![float; values.len()])
+            }
+            _ => Err (())
+        }
+    }
 
     /// Reduce an `Expression`, or returns it unchanged if not reducible
     pub fn reduce(self) -> Self {
