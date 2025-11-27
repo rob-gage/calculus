@@ -1,5 +1,6 @@
 // Copyright Rob Gage 2025
 
+use engine::Expression;
 use leptos::{
     html::Canvas,
     prelude::*,
@@ -8,8 +9,13 @@ use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
 use web_sys::HtmlCanvasElement;
 
+const LINE_VERTEX_COUNT: usize = 500;
+
 #[component]
-pub fn Graph() -> impl IntoView {
+pub fn Graph(
+    formula: Signal<Option<Expression<String>>>,
+    derivative_formula: Signal<Option<Expression<String>>>,
+) -> impl IntoView {
     // reactive graph limits
     let (minimum_x, set_minimum_x) = signal(-10.0);
     let (maximum_x, set_maximum_x) = signal(10.0);
@@ -31,7 +37,7 @@ pub fn Graph() -> impl IntoView {
         let mut chart = ChartBuilder::on(&root)
             .margin(10)
             .x_label_area_size(40)
-            .y_label_area_size(40)
+            .y_label_area_size(80)
             .build_cartesian_2d(
                 minimum_x.get()..maximum_x.get(),
                 minimum_y.get()..maximum_y.get()
@@ -41,6 +47,49 @@ pub fn Graph() -> impl IntoView {
             .x_labels(10)
             .y_labels(10)
             .draw().unwrap();
+
+        let start: f64 = minimum_x.get();
+        let increment: f64 = (maximum_x.get() - start) / LINE_VERTEX_COUNT as f64;
+        let mut x_values: Vec<f64> = Vec::with_capacity(LINE_VERTEX_COUNT);
+        for i in 0..LINE_VERTEX_COUNT {
+            x_values.push(start + (i as f64 * increment))
+        }
+
+        if let (Some (blue), Some (red)) = (formula.get(), derivative_formula.get()) {
+            if let Ok (y_values) = blue.evaluate(&"x".to_string(), &x_values) {
+                chart
+                    .draw_series(LineSeries::new(
+                        x_values.iter()
+                            .zip(y_values.iter())
+                            .map(|(x, y)| (*x, *y))
+                            .filter(|(x, y)|
+                                x >= &minimum_x.get() && x <= &maximum_x.get()
+                                && y >= &minimum_y.get() && y <= &maximum_y.get()
+                            ),
+                        &BLUE,
+                    ))
+                    .unwrap()
+                    .label("f(x)")
+                    .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
+            }
+            if let Ok (derivative_y_values) = red.evaluate(&"x".to_string(), &x_values) {
+                    chart
+                        .draw_series(LineSeries::new(
+                            x_values.iter()
+                                .zip(derivative_y_values.iter())
+                                .map(|(x, y)| (*x, *y))
+                                .filter(|(x, y)|
+                                    x >= &minimum_x.get() && x <= &maximum_x.get()
+                                        && y >= &minimum_y.get() && y <= &maximum_y.get()
+                                ),
+                            &RED,
+                        ))
+
+                        .unwrap()
+                        .label("f(x)'")
+                        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
+            }
+        }
 
         root.present().unwrap();
     });

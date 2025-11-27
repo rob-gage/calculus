@@ -25,13 +25,17 @@ extern "C" {
 pub fn App() -> impl IntoView {
 
     let formula_string = RwSignal::new("x".to_string());
-    let formula = move || parse_expression(formula_string.get().trim()).ok().map(|e| e.reduce());
-    let derived_formula = move || formula()
-        .map(|expression| expression.differentiate(&"x".to_string()).reduce());
 
-    let latex = Signal::derive(move || formula()
+    let formula = Signal::derive(
+        move || parse_expression(formula_string.get().trim()).ok().map(|e| e.reduce())
+    );
+    let derivative_formula = Signal::derive(
+        move || formula.get().map(|expression| expression.differentiate(&"x".to_string()).reduce())
+    );
+
+    let latex = Signal::derive(move || formula.get()
         .map(|f| format!("{}", f)).unwrap_or("".to_string()));
-    let derived_latex = Signal::derive(move || derived_formula()
+    let derived_latex = Signal::derive(move || derivative_formula.get()
         .map(|f| format!("{}", f)).unwrap_or("".to_string()));
     
     view! {
@@ -62,7 +66,10 @@ pub fn App() -> impl IntoView {
                 </div>
             </div>
             <div>
-                <Graph />
+                <Graph
+                    formula=formula
+                    derivative_formula=derivative_formula
+                />
             </div>
         </div>
     }
