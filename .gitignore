@@ -3,6 +3,8 @@
 # build files
 /target
 /web-interface/dist
+/dist
+/docs
 
 # IDE files
 /.idea

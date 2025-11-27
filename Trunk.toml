@@ -1,3 +1,5 @@
 # Copyright Rob Gage 2025
 
 [build]
+target = "web-interface/index.html"
+dist = "docs"
