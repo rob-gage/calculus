@@ -4,7 +4,7 @@
 
 use crate::katex_render;
 use leptos::{
-    html::Span,
+    html::Div,
     prelude::*
 };
 use wasm_bindgen::prelude::*;
@@ -15,18 +15,16 @@ pub fn Math(
     latex: Signal<String>
 ) -> impl IntoView {
 
-    let node = NodeRef::<Span>::new();
+    let node = NodeRef::<Div>::new();
 
     Effect::new(move |_| {
-        if let Some(span) = node.get() {
-            let element: Element = span.unchecked_into();
+        if let Some(div) = node.get() {
+            let element: Element = div.unchecked_into();
             katex_render(&latex.get(), element);
         }
     });
 
     view! {
-        <div class="math">
-            <span node_ref=node></span>
-        </div>
+        <div class="math"><div node_ref=node></div></div>
     }
 }

@@ -39,37 +39,33 @@ pub fn App() -> impl IntoView {
         .map(|f| format!("{}", f)).unwrap_or("".to_string()));
     
     view! {
-        <div style="
-            margin: auto;
-            max-width: 800px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        ">
-            <div>
+        <div id="container">
+            <div id="header">
                 <h1>{r"Rob's Differentiation Engine"}</h1>
             </div>
-            <div>
+            <div id="content">
                 <input
                     type="text"
                     bind:value=formula_string
                     placeholder="(10 + exp(x))/x^2"
-                    style="padding: 0.5rem; min-width: 300px;"
                 />
-            </div>
-            <div style="width: 100%; display: flex; flex-direction: row;">
-                <div style="width: 50%;">
-                    <Math latex=latex  />
+                <div style="width: 80%; display: flex; flex-direction: row; gap: 10%;">
+                    <div style="margin: 2.5%; width: 45%; height: 200px">
+                        <Math latex=latex  />
+                    </div>
+                    <div style="margin: 2.5%; width: 45%; height: 200px; ">
+                        <Math latex=derived_latex />
+                    </div>
                 </div>
-                <div style="width: 50%;">
-                    <Math latex=derived_latex  />
-                </div>
             </div>
-            <div>
+            <div id="graph">
                 <Graph
                     formula=formula
                     derivative_formula=derivative_formula
                 />
+            </div>
+            <div id="footer">
+                <span>{r"Copyright © Rob Gage"}</span>
             </div>
         </div>
     }
