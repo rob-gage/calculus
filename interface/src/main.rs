@@ -1,6 +1,6 @@
 // Copyright Rob Gage 2025
 
-use core::Expression;
+use engine::Expression;
 use syntax::parse_expression;
 use std::io::{
     stdin,
