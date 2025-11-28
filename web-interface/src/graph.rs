@@ -5,7 +5,10 @@ use leptos::{
     html::Canvas,
     prelude::*,
 };
-use plotters::prelude::*;
+use plotters::{
+    prelude::*,
+    style::ShapeStyle,
+};
 use plotters_canvas::CanvasBackend;
 use web_sys::HtmlCanvasElement;
 
@@ -35,9 +38,9 @@ pub fn Graph(
 
         // graph
         let mut chart = ChartBuilder::on(&root)
-            .margin(10)
+            .margin(20)
             .x_label_area_size(40)
-            .y_label_area_size(80)
+            .y_label_area_size(40)
             .build_cartesian_2d(
                 minimum_x.get()..maximum_x.get(),
                 minimum_y.get()..maximum_y.get()
@@ -46,6 +49,7 @@ pub fn Graph(
         chart.configure_mesh()
             .x_labels(10)
             .y_labels(10)
+            .axis_style(&BLACK.mix(0.0))   // invisible stroke
             .draw().unwrap();
 
         let start: f64 = minimum_x.get();
