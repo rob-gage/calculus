@@ -1,7 +1,7 @@
 // Copyright Rob Gage 2025
 
 use num_bigint::BigInt;
-use engine::Syntax;
+use engine::{Expression, Syntax};
 use pups::*;
 use std::str::FromStr;
 
@@ -15,53 +15,49 @@ pub fn parse_expression(syntax: &str) -> Result<Syntax, ()> {
 /// Parses an `Syntax` from syntax
 fn expression(input: &Text) -> Result<Syntax, ()> {
     choice((
-        choice((
-            quaternary,
-            token("-").then(whitespace().or_not()).ignore_then(quaternary)
-                .map(|integer| Syntax::Product(vec![
-                    integer, Syntax::Integer (BigInt::from(-1))
-                ])),
-        )).then(
-            repeated(whitespace().or_not().ignore_then(choice((
-                token("+").emit(true),
-                token("-").emit(false),
-            )).then_ignore(whitespace().or_not()).then(quaternary)))
-                .map(|vector| vector.into_iter().map(|(positive, term)|
-                    if positive { term } else { Syntax::Product(vec![
-                        Syntax::Integer (BigInt::from(-1)), term
-                    ]) }).collect::<Vec<Syntax>>())
-        ).map(|(first, rest)| {
-            let mut terms = vec![first];
-            terms.extend(rest);
-            if terms.len() != 1 {
-                Syntax::Sum (terms)
-            } else { terms.pop().unwrap() }
-        }),
-    )).parse(input)
+        quaternary,
+        token("-").then(whitespace().or_not()).ignore_then(quaternary)
+            .map(|integer| Syntax::Product(vec![
+                integer, Syntax::Integer (BigInt::from(-1))
+            ])),
+    )).then(
+        repeated(whitespace().or_not().ignore_then(choice((
+            token("+").emit(true),
+            token("-").emit(false),
+        )).then_ignore(whitespace().or_not()).then(quaternary)))
+            .map(|vector| vector.into_iter().map(|(positive, term)|
+                if positive { term } else { Syntax::Product(vec![
+                    Syntax::Integer (BigInt::from(-1)), term
+                ]) }).collect::<Vec<Syntax>>())
+    ).map(|(first, rest)| {
+        let mut terms = vec![first];
+        terms.extend(rest);
+        if terms.len() != 1 {
+            Syntax::Sum (terms)
+        } else { terms.pop().unwrap() }
+    }).parse(input)
 }
 
 
 /// Parses a quaternary syntax element (quotients, products)
 fn quaternary(input: &Text) -> Result<Syntax, ()> {
     choice((
-        // `Division`
-        tertiary.then_ignore(
+        tertiary.then(repeated_at_least(sequenced(
             delimited(
                 whitespace().or_not(),
-                token("/"),
+                choice((token("*").emit(true), token("/").emit(false))),
                 whitespace().or_not()
-            )
-        ).then(tertiary)
-            .map(|(dividend, divisor)| Syntax::Quotient (Box::new((dividend, divisor)))),
-        // `Multiplication`
-        separated_at_least(
+            ),
             tertiary,
-            delimited(
-                whitespace().or_not(),
-                token("*"),
-                whitespace().or_not(),
-            ), 2
-        ).map(|factors| Syntax::Product (factors)),
+        ), 1)).map(|(first, rest)| {
+            let mut expression: Syntax = first;
+            for (is_factor, other) in rest {
+                if is_factor { expression = Expression::Product (vec![expression, other]) } else {
+                    expression = Expression::Quotient (Box::new((expression, other)))
+                }
+            }
+            expression
+        }),
         tertiary
     )).parse(input)
 }
