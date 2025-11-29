@@ -285,7 +285,7 @@ impl Display for Expression<String> {
             Power (operands) => write!(f, "{}^{{{}}}", operands.0, operands.1),
             Exponential (operand) => write!(f, "e^{{{}}}", operand),
             Logarithm (operand) => write!(f, "\\ln({})", operand),
-            Variable (name) => f.write_str(name),
+            Variable (name) => write!(f, "\\mathit{{{}}}", name),
             Integer (integer) => f.write_str(&integer.to_string()),
         }
     }
