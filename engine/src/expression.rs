@@ -274,8 +274,7 @@ impl Display for Expression<String> {
             }
             Product(terms) => {
                 for index in 0..terms.len() {
-                    if index != 0 { f.write_str(" \\cdot ")?; }
-                    write!(f, "{}", terms[index])?;
+                    write!(f, "\\left({}\\right)", terms[index])?;
                 }
                 Ok(())
             }
