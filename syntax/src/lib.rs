@@ -16,25 +16,27 @@ pub fn parse_expression(syntax: &str) -> Result<Syntax, ()> {
 fn expression(input: &Text) -> Result<Syntax, ()> {
     choice((
         tertiary,
-        token("-").then(whitespace().or_not()).ignore_then(tertiary)
-            .map(|negative| Syntax::Product(vec![
-                negative, Syntax::Integer (BigInt::from(-1))
-            ])),
-    )).then(
-        repeated(whitespace().or_not().ignore_then(choice((
-            token("+").emit(true),
-            token("-").emit(false),
-        )).then_ignore(whitespace().or_not()).then(tertiary)))
-            .map(|vector| vector.into_iter().map(|(positive, term)|
-                if positive { term } else { Syntax::Product(vec![
-                Syntax::Integer (BigInt::from(-1)), term
-            ]) }).collect::<Vec<Syntax>>())
-    ).map(|(first, rest)| {
+        choice((
+            tertiary,
+            token("-").then(whitespace().or_not()).ignore_then(tertiary)
+                .map(|negative| Syntax::Product(vec![
+                    negative, Syntax::Integer (BigInt::from(-1))
+                ])),
+        )).then(
+            repeated(whitespace().or_not().ignore_then(choice((
+                token("+").emit(true),
+                token("-").emit(false),
+            )).then_ignore(whitespace().or_not()).then(tertiary)))
+                .map(|vector| vector.into_iter().map(|(positive, term)|
+                    if positive { term } else { Syntax::Product(vec![
+                        Syntax::Integer (BigInt::from(-1)), term
+                    ]) }).collect::<Vec<Syntax>>())
+        ).map(|(first, rest)| {
             let mut terms = vec![first];
             terms.extend(rest);
             Syntax::Sum(terms)
         })
-        .parse(input)
+    )).parse(input)
 }
 
 
@@ -51,15 +53,24 @@ fn tertiary(input: &Text) -> Result<Syntax, ()> {
         ).then(secondary)
             .map(|(dividend, divisor)| Syntax::Quotient(Box::new((dividend, divisor)))),
         // `Multiplication`
-        separated_at_least_once(
-            secondary,
-            delimited(
-                whitespace().or_not(),
-                token("*"),
-                whitespace().or_not(),
+        choice((
+            separated_at_least(
+                secondary,
+                delimited(
+                    whitespace().or_not(),
+                    token("*"),
+                    whitespace().or_not(),
+                ), 2
             ),
-        )
-            .map(|factors| Syntax::Product(factors))
+            repeated_at_least(
+                delimited(
+                    token("(").then(whitespace().or_not()),
+                    expression,
+                    whitespace().or_not().then(token(")")),
+                ), 2
+            )
+        )).map(|factors| Syntax::Product(factors)),
+        secondary
     )).parse(input)
 }
 
@@ -96,8 +107,7 @@ fn primary(input: &Text) -> Result<Syntax, ()> {
             token("log(").then(whitespace().or_not()),
             expression,
             whitespace().or_not().then(token(")")),
-        )
-            .map(|term| Syntax::Logarithm (Box::new(term))),
+        ).map(|term| Syntax::Logarithm (Box::new(term))),
         // `Integer`
         number().map(|number| Syntax::Integer (BigInt::from_str(number).unwrap())),
         // `Variable`
