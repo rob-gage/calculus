@@ -12,6 +12,11 @@ use num::{
 };
 use std::{
     collections::HashMap,
+    fmt::{
+        Display,
+        Formatter,
+        Result as FormatResult,
+    },
     hash::Hash,
 };
 
@@ -102,4 +107,34 @@ impl<I: Clone + Eq + Hash + PartialEq> Monomial<I> {
         factors
     }
 
+}
+
+impl Display for Monomial<String> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FormatResult {
+        use Expression::*;
+        if self.multiplier.is_integer() {
+            if self.multiplier != BigRational::one() {
+                write!(f, "{}", self.multiplier)?;
+            }
+        } else { write!(
+            f, "\\displaystyle \\frac{{{}}}{{{}}}",
+            self.multiplier.numer(), self.multiplier.denom())
+        ? }
+        let mut variables: Vec<(&String, &BigInt)> = self.variables.iter().collect();
+        variables.sort_by(|(a_name, a_exponent), (b_name, b_exponent)| {
+            match b_exponent.cmp(a_exponent) {
+                std::cmp::Ordering::Equal => a_name.cmp(b_name),
+                other => other,
+            }
+        });
+        for (name, exponent) in variables {
+            if exponent != &BigInt::from(1) {
+                write!(f, "\\mathit{{{}}}^{{{}}}", name, exponent)?;
+            } else { write!(f, "\\mathit{{{}}}", name)?; }
+        }
+        for factor in self.other_factors.iter() {
+            write!(f, "\\left({}\\right)", factor)?;
+        }
+        Ok (())
+    }
 }

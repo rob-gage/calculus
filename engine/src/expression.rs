@@ -272,11 +272,9 @@ impl Display for Expression<String> {
                 }
                 Ok(())
             }
-            Product(terms) => {
-                for index in 0..terms.len() {
-                    write!(f, "\\left({}\\right)", terms[index])?;
-                }
-                Ok(())
+            Product (factors) => {
+                let monomial: Monomial<String> = Monomial::from_factors(factors);
+                write!(f, "{}", monomial)
             }
             Quotient(operands) => write!(
                 f,
