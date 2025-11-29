@@ -31,6 +31,8 @@ pub fn Graph(
     Effect::new(move || {
         // canvas
         let Some (canvas) = canvas_reference.get() else { panic!() };
+        canvas.set_width(800);
+        canvas.set_height(800);
         let backend: CanvasBackend = CanvasBackend::with_canvas_object(canvas)
             .expect("Failed to create `CanvasBackend`");
         let root = backend.into_drawing_area();
@@ -59,39 +61,28 @@ pub fn Graph(
             x_values.push(start + (i as f64 * increment))
         }
 
-        if let (Some (blue), Some (red)) = (formula.get(), derivative_formula.get()) {
-            if let Ok (y_values) = blue.evaluate(&"x".to_string(), &x_values) {
+
+        if let (Some (a), Some (b)) = (formula.get(), derivative_formula.get()) {
+            let (bottom, top): (f64, f64) = (minimum_y.get(), maximum_y.get());
+            let a_segments: Vec<Vec<(f64, f64)>> = segments(&a, &x_values, bottom, top);
+            let b_segments: Vec<Vec<(f64, f64)>> = segments(&b, &x_values, bottom, top);
+            for segment in a_segments {
                 chart
                     .draw_series(LineSeries::new(
-                        x_values.iter()
-                            .zip(y_values.iter())
-                            .map(|(x, y)| (*x, *y)),
-                            // .filter(|(x, y)|
-                            //     x >= &minimum_x.get() && x <= &maximum_x.get()
-                            //     && y >= &minimum_y.get() && y <= &maximum_y.get()
-                            // ),
+                        segment.into_iter()
+                            .map(|(x, y)| (x, y)),
                         &BLUE,
                     ))
-                    .unwrap()
-                    .label("f(x)")
-                    .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
+                    .unwrap();
             }
-            if let Ok (derivative_y_values) = red.evaluate(&"x".to_string(), &x_values) {
-                    chart
-                        .draw_series(LineSeries::new(
-                            x_values.iter()
-                                .zip(derivative_y_values.iter())
-                                .map(|(x, y)| (*x, *y)),
-                                // .filter(|(x, y)|
-                                //     x >= &minimum_x.get() && x <= &maximum_x.get()
-                                //         && y >= &minimum_y.get() && y <= &maximum_y.get()
-                                // ),
-                            &RED,
-                        ))
-
-                        .unwrap()
-                        .label("f(x)'")
-                        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
+            for segment in b_segments {
+                chart
+                    .draw_series(LineSeries::new(
+                        segment.into_iter()
+                            .map(|(x, y)| (x, y)),
+                        &GREEN,
+                    ))
+                    .unwrap();
             }
         }
 
@@ -100,49 +91,75 @@ pub fn Graph(
 
     view! {
 
-<div class="graph-container" style="width: 100%;">
-    <canvas
-        node_ref=canvas_reference
-        width="500"
-        height="500"
-        style="border: 1px black solid;"
-    ></canvas>
-    <div>
-        <h4>Horizontal axis</h4>
-        <label>"Minimum: "</label>
-        <input type="number"
-            prop:value=minimum_x.get()
-            on:input=move |e|set_minimum_x.set(
-                event_target_value(&e).parse().unwrap_or(minimum_x.get())
-            )
-        />
-        <label>"Maximum: "</label>
-        <input type="number"
-            prop:value=maximum_x.get()
-            on:input=move |e| set_maximum_x.set(
-                event_target_value(&e).parse().unwrap_or(maximum_x.get())
-        )
-        />
-    </div>
+        <div class="graph-container" style="width: 100%;">
+            <canvas
+                node_ref=canvas_reference
+                width="500"
+                height="500"
+                style="border: 1px black solid;"
+            ></canvas>
+            <div>
+                <h4>Horizontal axis</h4>
+                <label>"Minimum: "</label>
+                <input type="number"
+                    prop:value=minimum_x.get()
+                    on:input=move |e|set_minimum_x.set(
+                        event_target_value(&e).parse().unwrap_or(minimum_x.get())
+                    )
+                />
+                <label>"Maximum: "</label>
+                <input type="number"
+                    prop:value=maximum_x.get()
+                    on:input=move |e| set_maximum_x.set(
+                        event_target_value(&e).parse().unwrap_or(maximum_x.get())
+                )
+                />
+            </div>
 
-    <div>
-        <h4>Vertical axis</h4>
-        <label>"Minimum: "</label>
-        <input type="number"
-            prop:value=minimum_y.get()
-            on:input=move |e| set_minimum_y.set(
-                event_target_value(&e).parse().unwrap_or(minimum_y.get())
-            )
-        />
-        <label>"Maximum: "</label>
-        <input type="number"
-            prop:value=maximum_y.get()
-            on:input=move |e| set_maximum_y.set(
-                event_target_value(&e).parse().unwrap_or(maximum_y.get())
-            )
-        />
-    </div>
-</div>
+            <div>
+                <h4>Vertical axis</h4>
+                <label>"Minimum: "</label>
+                <input type="number"
+                    prop:value=minimum_y.get()
+                    on:input=move |e| set_minimum_y.set(
+                        event_target_value(&e).parse().unwrap_or(minimum_y.get())
+                    )
+                />
+                <label>"Maximum: "</label>
+                <input type="number"
+                    prop:value=maximum_y.get()
+                    on:input=move |e| set_maximum_y.set(
+                        event_target_value(&e).parse().unwrap_or(maximum_y.get())
+                    )
+                />
+            </div>
+        </div>
 
     }
+}
+
+/// Computes the line segments of a formula from provided x values
+fn segments(
+    formula: &Expression<String>,
+    x_values: &[f64],
+    minimum_y: f64,
+    maximum_y: f64,
+) -> Vec<Vec<(f64, f64)>> {
+    let mut segments: Vec<Vec<(f64, f64)>> = Vec::new();
+    let mut segment: Vec<(f64, f64)> = Vec::new();
+    let Ok (y_values) = formula.evaluate(&"x".to_string(), &x_values) else { return vec![] };
+    for (&x, y) in x_values.into_iter().zip(y_values.into_iter()) {
+        if y.is_nan() || y.is_infinite(){
+            if !segment.is_empty() {
+                segments.push(segment);
+                segment = Vec::new();
+            }
+        } else if (y < minimum_y  || y > maximum_y) && !segment.is_empty() {
+            segment.push((x, y));
+            segments.push(segment);
+            segment = Vec::new();
+        } else { segment.push((x, y)); }
+    }
+    if segment.len() != 0 { segments.push(segment); }
+    segments
 }
