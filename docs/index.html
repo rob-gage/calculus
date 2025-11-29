@@ -1,0 +1,32 @@
+<!-- Copyright Rob Gage 2025 -->
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Rob's Differentiation Engine</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <link
+            rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css"
+            integrity="sha384-WcoG4HRXMzYzfCgiyfrySxx90XSl2rxY5mnVY5TwtWE6KLrArNKn0T/mOgNL0Mmi"
+            crossorigin="anonymous"
+        >
+        <script defer
+            src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.js"
+                integrity="sha384-J+9dG2KMoiR9hqcFao0IBLwxt6zpcyN68IgwzsCSkbreXUjmNVRhPFTssqdSGjwQ"
+                crossorigin="anonymous"
+        ></script>
+        <link rel="stylesheet" href="/style-e2b06fe5d177a463.css" integrity="sha384-ps4JSf5EaH/zXlD2vuV2rIBpKTt2VU155hmY2iN1dh7IA4F/PfISI4cSclxetmTr"/>
+    <link rel="modulepreload" href="/web-interface-3040b8ad018f8f47.js" crossorigin="anonymous" integrity="sha384-faX2ewtaZgUPQghYbUU51UCD4TsVk6gFhY3Xa3/1DnZfnFMn/pwOyYRsUulL5VTO"><link rel="preload" href="/web-interface-3040b8ad018f8f47_bg.wasm" crossorigin="anonymous" integrity="sha384-nCAtgIN7XCvsPf7BRheHK++MwmRffW9ZUQ/u306SwU+AeewspomEcd/0zcxj9BDq" as="fetch" type="application/wasm"></head>
+    <body>
+<script type="module">
+import init, * as bindings from '/web-interface-3040b8ad018f8f47.js';
+const wasm = await init({ module_or_path: '/web-interface-3040b8ad018f8f47_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+</html>
