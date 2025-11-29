@@ -19,11 +19,9 @@ pub fn Graph(
     formula: Signal<Option<Expression<String>>>,
     derivative_formula: Signal<Option<Expression<String>>>,
 ) -> impl IntoView {
-    // reactive graph limits
-    let (minimum_x, set_minimum_x) = signal(-10.0);
-    let (maximum_x, set_maximum_x) = signal(10.0);
-    let (minimum_y, set_minimum_y) = signal(-10.0);
-    let (maximum_y, set_maximum_y) = signal(10.0);
+
+    let (scale, set_scale) = signal(0.5);
+
 
     let canvas_reference = NodeRef::<Canvas>::new();
 
@@ -32,15 +30,18 @@ pub fn Graph(
 
         // canvas
         let Some (canvas) = canvas_reference.get() else { panic!() };
-        canvas.set_width(800);
-        canvas.set_height(800);
         let backend: CanvasBackend = CanvasBackend::with_canvas_object(canvas)
             .expect("Failed to create `CanvasBackend`");
         let root = backend.into_drawing_area();
         root.fill(&WHITE).unwrap();
 
-        let (minimum_x, maximum_x): (f64, f64) = (minimum_x.get(), maximum_x.get());
-        let (minimum_y, maximum_y): (f64, f64) = (minimum_y.get(), maximum_y.get());
+        let scale_minimum: f64 = 0.01;
+        let scale_maximum: f64 = 10000.0;
+        let scale: f64 = scale_minimum * (scale_maximum / scale_minimum).powf(scale.get());
+        let minimum_x: f64 = -scale;
+        let maximum_x: f64 = scale;
+        let minimum_y: f64 = -scale;
+        let maximum_y: f64 = scale;
 
         // graph
         let mut chart = ChartBuilder::on(&root)
@@ -100,47 +101,26 @@ pub fn Graph(
 
     view! {
 
-        <div class="graph-container" style="width: 100%;">
+        <div class="graph-container" style="
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center
+        ">
+            <input
+                type="range"
+                min="0" max="1" step="0.0001"
+                style="width: 100%;"
+                prop:value=scale.get()
+                on:input=move |event|
+                    set_scale.set(event_target_value(&event).parse().unwrap_or(scale.get()))
+            />
             <canvas
                 node_ref=canvas_reference
-                width="500"
-                height="500"
+                width="800"
+                height="800"
+                style="max-width: 600px; height: auto"
             ></canvas>
-            <div>
-                <h4>Horizontal axis</h4>
-                <label>"Minimum: "</label>
-                <input type="number"
-                    prop:value=minimum_x.get()
-                    on:input=move |e|set_minimum_x.set(
-                        event_target_value(&e).parse().unwrap_or(minimum_x.get())
-                    )
-                />
-                <label>"Maximum: "</label>
-                <input type="number"
-                    prop:value=maximum_x.get()
-                    on:input=move |e| set_maximum_x.set(
-                        event_target_value(&e).parse().unwrap_or(maximum_x.get())
-                )
-                />
-            </div>
-
-            <div>
-                <h4>Vertical axis</h4>
-                <label>"Minimum: "</label>
-                <input type="number"
-                    prop:value=minimum_y.get()
-                    on:input=move |e| set_minimum_y.set(
-                        event_target_value(&e).parse().unwrap_or(minimum_y.get())
-                    )
-                />
-                <label>"Maximum: "</label>
-                <input type="number"
-                    prop:value=maximum_y.get()
-                    on:input=move |e| set_maximum_y.set(
-                        event_target_value(&e).parse().unwrap_or(maximum_y.get())
-                    )
-                />
-            </div>
         </div>
 
     }
@@ -157,7 +137,7 @@ fn segments(
     let mut segment: Vec<(f64, f64)> = Vec::new();
     let Ok (y_values) = formula.evaluate(&"x".to_string(), &x_values) else { return vec![] };
     for (&x, y) in x_values.into_iter().zip(y_values.into_iter()) {
-        if y.is_nan() || y.is_infinite(){
+        if y.is_nan() || y > maximum_y  || y < minimum_y {
             if !segment.is_empty() {
                 segments.push(segment);
                 segment = Vec::new();
