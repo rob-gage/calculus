@@ -15,18 +15,17 @@ pub fn parse_expression(syntax: &str) -> Result<Syntax, ()> {
 /// Parses an `Syntax` from syntax
 fn expression(input: &Text) -> Result<Syntax, ()> {
     choice((
-        tertiary,
         choice((
-            tertiary,
-            token("-").then(whitespace().or_not()).ignore_then(tertiary)
-                .map(|negative| Syntax::Product(vec![
-                    negative, Syntax::Integer (BigInt::from(-1))
+            quaternary,
+            token("-").then(whitespace().or_not()).ignore_then(quaternary)
+                .map(|integer| Syntax::Product(vec![
+                    integer, Syntax::Integer (BigInt::from(-1))
                 ])),
         )).then(
             repeated(whitespace().or_not().ignore_then(choice((
                 token("+").emit(true),
                 token("-").emit(false),
-            )).then_ignore(whitespace().or_not()).then(tertiary)))
+            )).then_ignore(whitespace().or_not()).then(quaternary)))
                 .map(|vector| vector.into_iter().map(|(positive, term)|
                     if positive { term } else { Syntax::Product(vec![
                         Syntax::Integer (BigInt::from(-1)), term
@@ -34,48 +33,50 @@ fn expression(input: &Text) -> Result<Syntax, ()> {
         ).map(|(first, rest)| {
             let mut terms = vec![first];
             terms.extend(rest);
-            Syntax::Sum(terms)
-        })
+            if terms.len() != 1 {
+                Syntax::Sum (terms)
+            } else { terms.pop().unwrap() }
+        }),
     )).parse(input)
 }
 
 
-/// Parses a tertiary syntax element (factors, dividends, divisors)
-fn tertiary(input: &Text) -> Result<Syntax, ()> {
+/// Parses a quaternary syntax element (quotients, products)
+fn quaternary(input: &Text) -> Result<Syntax, ()> {
     choice((
         // `Division`
-        secondary.then_ignore(
+        tertiary.then_ignore(
             delimited(
                 whitespace().or_not(),
                 token("/"),
                 whitespace().or_not()
             )
-        ).then(secondary)
-            .map(|(dividend, divisor)| Syntax::Quotient(Box::new((dividend, divisor)))),
+        ).then(tertiary)
+            .map(|(dividend, divisor)| Syntax::Quotient (Box::new((dividend, divisor)))),
         // `Multiplication`
-        choice((
-            separated_at_least(
-                secondary,
-                delimited(
-                    whitespace().or_not(),
-                    token("*"),
-                    whitespace().or_not(),
-                ), 2
-            ),
-            repeated_at_least(
-                delimited(
-                    token("(").then(whitespace().or_not()),
-                    expression,
-                    whitespace().or_not().then(token(")")),
-                ), 2
-            )
-        )).map(|factors| Syntax::Product(factors)),
+        separated_at_least(
+            tertiary,
+            delimited(
+                whitespace().or_not(),
+                token("*"),
+                whitespace().or_not(),
+            ), 2
+        ).map(|factors| Syntax::Product (factors)),
+        tertiary
+    )).parse(input)
+}
+
+
+/// Parses a tertiary syntax element (products from sequenced factors in parentheses)
+fn tertiary(input: &Text) -> Result<Syntax, ()> {
+    choice((
+        repeated_at_least(parentheses, 2).map(|factors| Syntax::Product (factors)),
         secondary
     )).parse(input)
 }
 
 
-/// Parses a secondary syntax element (bases, exponents)
+/// Parses a secondary syntax element (powers)
 fn secondary(input: &Text) -> Result<Syntax, ()> {
     choice((
         // `Power`
@@ -104,7 +105,7 @@ fn primary(input: &Text) -> Result<Syntax, ()> {
             .map(|term| Syntax::Exponential (Box::new(term))),
         // `Logarithm`
         delimited(
-            token("log(").then(whitespace().or_not()),
+            token("ln(").then(whitespace().or_not()),
             expression,
             whitespace().or_not().then(token(")")),
         ).map(|term| Syntax::Logarithm (Box::new(term))),
