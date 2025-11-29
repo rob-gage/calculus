@@ -18,10 +18,10 @@ use num_traits::ToPrimitive;
 pub enum Expression<I: Clone + Eq + PartialEq = usize> {
 
     /// Addition of terms
-    Addition (Vec<Expression<I>>),
+    Sum (Vec<Expression<I>>),
 
     /// Multiplication of terms
-    Multiplication (Vec<Expression<I>>),
+    Product(Vec<Expression<I>>),
 
     /// Division of a term by another
     Division (Box<(Expression<I>, Expression<I>)>),
@@ -50,7 +50,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
     /// (This method requires that no other unsubstituted variables remain in the `Expression`)
     pub fn evaluate(&self, variable: &I, values: &[f64]) -> Result<Vec<f64>, ()> {
         match self {
-            Expression::Addition (terms) => {
+            Expression::Sum(terms) => {
                 let mut output: Vec<f64> = vec![0.0; values.len()];
                 for term in terms {
                     let term_values: Vec<f64> = term.evaluate(variable, values)?;
@@ -60,7 +60,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                 }
                 Ok (output)
             }
-            Expression::Multiplication (factors) => {
+            Expression::Product(factors) => {
                 let mut output: Vec<f64> = vec![1.0; values.len()];
                 for factor in factors {
                     let term_values: Vec<f64> = factor.evaluate(variable, values)?;
@@ -105,10 +105,10 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
     pub fn reduce(self) -> Self {
         use Expression::*;
         match self {
-            Addition (terms) => {
+            Sum(terms) => {
                 let terms: Vec<Self> = terms.into_iter()
                     .flat_map(|term| match term {
-                        Addition (terms) => terms.into_iter()
+                        Sum(terms) => terms.into_iter()
                             .map(|term| term.reduce())
                             .collect(),
                         other => vec![other.reduce()]
@@ -132,14 +132,14 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                         if integer_sum == BigInt::ZERO {
                             if other_terms.is_empty() { return Integer (BigInt::ZERO) }
                         } else { other_terms.push(Integer (integer_sum)) }
-                        Addition (other_terms)
+                        Sum(other_terms)
                     }
                 }
             }
-            Multiplication (factors) => {
+            Product(factors) => {
                 let factors: Vec<Self> = factors.into_iter()
                     .flat_map(|term| match term {
-                        Multiplication (factors) => factors.into_iter()
+                        Product(factors) => factors.into_iter()
                             .map(|term| term.reduce())
                             .collect(),
                         other => vec![other.reduce()]
@@ -165,7 +165,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                         } else if integer_product != BigInt::from(1) {
                             other_terms.push(Integer (integer_product));
                         }
-                        Multiplication (other_terms)
+                        Product(other_terms)
                     }
                 }
             }
@@ -211,12 +211,12 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
             // constant rule
             Integer (_) => Integer (BigInt::from(0)),
             // sum rule
-            Addition (terms) => Addition (terms.iter()
+            Sum(terms) => Sum(terms.iter()
                 .map(|operand| operand.differentiate(variable))
                 .collect()
             ),
             // product rule
-            Multiplication (factors) => Addition (factors.iter()
+            Product(factors) => Sum(factors.iter()
                 .enumerate()
                 .map(|(factor_index, factor)| {
                     let mut output: Vec<Expression<I>> = Vec::with_capacity(factors.len());
@@ -226,22 +226,22 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                             output.push(factors[index].clone());
                         }
                     }
-                    Multiplication (output)
+                    Product(output)
                 })
                 .collect()
             ),
             // quotient rule
             Division (terms) => Division (Box::new((
-                Addition (vec![
-                    Multiplication (vec![terms.0.differentiate(variable), terms.1.clone()]),
-                    Multiplication (vec![terms.0.clone(), terms.1.differentiate(variable)]),
+                Sum(vec![
+                    Product(vec![terms.0.differentiate(variable), terms.1.clone()]),
+                    Product(vec![terms.0.clone(), terms.1.differentiate(variable)]),
                 ]),
-                Multiplication (vec![terms.1.clone(), terms.1.clone()])
+                Product(vec![terms.1.clone(), terms.1.clone()])
             ))),
             // power rules
             Power (terms) => match *terms.clone() {
                 // known base shortcut
-                (Integer (base), exponent) => Multiplication(vec![
+                (Integer (base), exponent) => Product(vec![
                     Power (Box::new((Integer (base.clone()), exponent.clone()))),
                     Logarithm (Box::new(Integer (base))),
                     exponent.differentiate(variable)
@@ -251,20 +251,20 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                     Integer (BigInt::ZERO)
                 } else if exponent == BigInt::from(1) {
                     base.differentiate(variable)
-                } else { Multiplication (vec![
+                } else { Product(vec![
                     Integer (exponent.clone()),
                     Power (Box::new ((base.clone(), Integer (exponent - 1)))),
                     base.differentiate(variable)
                 ])},
                 // general power rule
-                (base, exponent) => Multiplication (vec![
+                (base, exponent) => Product(vec![
                     Power (Box::new((base.clone(), exponent.clone()))),
-                    Addition (vec![
-                        Multiplication (vec![
+                    Sum(vec![
+                        Product(vec![
                             exponent.differentiate(variable),
                             Logarithm (Box::new(base.clone()))
                         ]),
-                        Multiplication (vec![
+                        Product(vec![
                             exponent,
                             Division(Box::new((base.differentiate(variable), base)))
                         ])
@@ -272,7 +272,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                 ])
             }
             // exponential rule
-            Exponential (term) => Multiplication (vec![
+            Exponential (term) => Product(vec![
                 Exponential (term.clone()),
                 term.differentiate(variable)
             ]),
@@ -290,14 +290,14 @@ impl Display for Expression<String> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FormatResult {
         use Expression::*;
         match self {
-            Addition (terms) => {
+            Sum(terms) => {
                 for index in 0..terms.len() {
                     if index != 0 { f.write_str(" + ")?; }
                     write!(f, "{}", terms[index])?;
                 }
                 Ok(())
             }
-            Multiplication (terms) => {
+            Product(terms) => {
                 for index in 0..terms.len() {
                     if index != 0 { f.write_str(" \\cdot ")?; }
                     write!(f, "{}", terms[index])?;

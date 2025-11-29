@@ -17,7 +17,7 @@ fn expression(input: &Text) -> Result<Syntax, ()> {
     choice((
         tertiary,
         token("-").then(whitespace().or_not()).ignore_then(tertiary)
-            .map(|negative| Syntax::Multiplication(vec![
+            .map(|negative| Syntax::Product(vec![
                 negative, Syntax::Integer (BigInt::from(-1))
             ])),
     )).then(
@@ -26,13 +26,13 @@ fn expression(input: &Text) -> Result<Syntax, ()> {
             token("-").emit(false),
         )).then_ignore(whitespace().or_not()).then(tertiary)))
             .map(|vector| vector.into_iter().map(|(positive, term)|
-                if positive { term } else { Syntax::Multiplication(vec![
+                if positive { term } else { Syntax::Product(vec![
                 Syntax::Integer (BigInt::from(-1)), term
             ]) }).collect::<Vec<Syntax>>())
     ).map(|(first, rest)| {
             let mut terms = vec![first];
             terms.extend(rest);
-            Syntax::Addition (terms)
+            Syntax::Sum(terms)
         })
         .parse(input)
 }
@@ -59,7 +59,7 @@ fn tertiary(input: &Text) -> Result<Syntax, ()> {
                 whitespace().or_not(),
             ),
         )
-            .map(|factors| Syntax::Multiplication (factors))
+            .map(|factors| Syntax::Product(factors))
     )).parse(input)
 }
 

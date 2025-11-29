@@ -30,11 +30,11 @@ impl Namespace {
     pub fn intern(&mut self, expression: Expression<String>) -> Expression {
         use Expression::*;
         match expression {
-            Addition(terms) => Addition(terms.into_iter()
+            Sum(terms) => Sum(terms.into_iter()
                 .map(|term| self.intern(term))
                 .collect()
             ),
-            Multiplication(factors) => Multiplication(factors.into_iter()
+            Product(factors) => Product(factors.into_iter()
                 .map(|factor| self.intern(factor))
                 .collect()
             ),
@@ -71,14 +71,14 @@ impl Namespace {
     fn write<W: Write>(&self, w: &mut W, expression: &Expression) -> FormatResult {
         use Expression::*;
         match expression {
-            Addition (terms) => {
+            Sum(terms) => {
                 for index in 0..terms.len() {
                     if index != 0 { w.write_str(" + ")?; }
                     self.write(w, &terms[index])?;
                 }
                 Ok(())
             }
-            Multiplication (terms) => {
+            Product(terms) => {
                 for index in 0..terms.len() {
                     w.write_char('(')?;
                     self.write(w, &terms[index])?;
