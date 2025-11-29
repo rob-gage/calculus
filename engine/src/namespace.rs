@@ -38,7 +38,7 @@ impl Namespace {
                 .map(|factor| self.intern(factor))
                 .collect()
             ),
-            Division(operands) => Division(Box::new((
+            Quotient(operands) => Quotient(Box::new((
                 self.intern(operands.0),
                 self.intern(operands.1)
             ))),
@@ -86,7 +86,7 @@ impl Namespace {
                 }
                 Ok(())
             }
-            Division (operands) => {
+            Quotient(operands) => {
                 self.write(w, &operands.0)?;
                 w.write_str(" / ")?;
                 self.write(w, &operands.0)?;

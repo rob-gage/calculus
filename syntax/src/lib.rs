@@ -49,7 +49,7 @@ fn tertiary(input: &Text) -> Result<Syntax, ()> {
                 whitespace().or_not()
             )
         ).then(secondary)
-            .map(|(dividend, divisor)| Syntax::Division (Box::new((dividend, divisor)))),
+            .map(|(dividend, divisor)| Syntax::Quotient(Box::new((dividend, divisor)))),
         // `Multiplication`
         separated_at_least_once(
             secondary,

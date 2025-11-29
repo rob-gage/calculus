@@ -21,10 +21,10 @@ pub enum Expression<I: Clone + Eq + PartialEq = usize> {
     Sum (Vec<Expression<I>>),
 
     /// Multiplication of terms
-    Product(Vec<Expression<I>>),
+    Product (Vec<Expression<I>>),
 
     /// Division of a term by another
-    Division (Box<(Expression<I>, Expression<I>)>),
+    Quotient (Box<(Expression<I>, Expression<I>)>),
 
     /// Exponentiation of a term to another as a power
     Power (Box<(Expression<I>, Expression<I>)>),
@@ -70,7 +70,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                 }
                 Ok (output)
             }
-            Expression::Division (operands) => Ok (
+            Expression::Quotient(operands) => Ok (
                 operands.0.evaluate(variable, values)?.into_iter()
                     .zip(operands.1.evaluate(variable, values)?.into_iter())
                     .map(|(a, b)| a / b)
@@ -169,7 +169,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                     }
                 }
             }
-            Division (terms) => {
+            Quotient(terms) => {
                 let dividend: Expression<I> = terms.0.reduce();
                 let divisor: Expression<I> = terms.1.reduce();
                 match (&dividend, &divisor) {
@@ -179,10 +179,10 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                         let numerator: BigInt = numerator / &gcd;
                         let denominator: BigInt = denominator / &gcd;
                         if denominator == BigInt::from(1) { Integer (numerator) } else {
-                            Division (Box::new((Integer (numerator), Integer (denominator))))
+                            Quotient(Box::new((Integer (numerator), Integer (denominator))))
                         }
                     }
-                    _ => Division (Box::new((dividend, divisor))),
+                    _ => Quotient(Box::new((dividend, divisor))),
                 }
             }
             Power (terms) => {
@@ -231,7 +231,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                 .collect()
             ),
             // quotient rule
-            Division (terms) => Division (Box::new((
+            Quotient(terms) => Quotient(Box::new((
                 Sum(vec![
                     Product(vec![terms.0.differentiate(variable), terms.1.clone()]),
                     Product(vec![terms.0.clone(), terms.1.differentiate(variable)]),
@@ -266,7 +266,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                         ]),
                         Product(vec![
                             exponent,
-                            Division(Box::new((base.differentiate(variable), base)))
+                            Quotient(Box::new((base.differentiate(variable), base)))
                         ])
                     ])
                 ])
@@ -277,7 +277,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                 term.differentiate(variable)
             ]),
             // logarithm rule
-            Logarithm (term) => Division (Box::new((
+            Logarithm (term) => Quotient(Box::new((
                 term.differentiate(variable),
                 *term.clone(),
             ))),
@@ -304,7 +304,7 @@ impl Display for Expression<String> {
                 }
                 Ok(())
             }
-            Division (operands) => write!(
+            Quotient(operands) => write!(
                 f,
                 "\\displaystyle \\frac{{{}}}{{{}}}",
                 operands.0,operands.1),
