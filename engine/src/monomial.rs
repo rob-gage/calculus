@@ -7,6 +7,8 @@ use crate::Expression::{
 use num::{
     bigint::BigInt,
     rational::BigRational,
+    One,
+    Zero
 };
 use std::{
     collections::HashMap,
@@ -32,26 +34,31 @@ impl<I: Clone + Eq + Hash + PartialEq> Monomial<I> {
         let mut other_factors: Vec<Expression<I>> = vec![];
         let mut monomials: Vec<Self> = Vec::new();
         for factor in factors {
-            match factor {
-                Product (factors) => monomials.push(Self::from_factors(factors)),
-                Quotient (operands) => match (&operands.0, &operands.1) {
+            match factor.clone().reduce() {
+                Product (factors) => monomials.push(Self::from_factors(&factors)),
+                Quotient (operands) => match (operands.0, operands.1) {
                     (Integer (numerator), Integer (denominator)) =>
                         multiplier *= BigRational::new(numerator.clone(), denominator.clone()),
-                    _ => other_factors.push(Quotient (operands.clone())),
+                    operands => other_factors.push(Quotient (Box::new(operands))),
                 }
-                Power (operands) => match (&operands.0, &operands.1) {
+                Power (operands) => match (operands.0, operands.1) {
                     (Variable (identifier), Integer (exponent)) =>
-                        if variables.contains_key(identifier) {
-                            *variables.get_mut(identifier).unwrap() += exponent;
-                        } else { variables.insert(identifier.clone(), exponent.clone()); },
-                    _ => other_factors.push(Power (operands.clone())),
+                        if variables.contains_key(&identifier) {
+                            *variables.get_mut(&identifier).unwrap() += exponent;
+                        } else { variables.insert(identifier, exponent); },
+                    operands => other_factors.push(Power (Box::new(operands))),
                 }
                 Integer (integer) => multiplier *= BigRational::from_integer(integer.clone()),
-                Variable (identifier) => if variables.contains_key(identifier) {
-                    *variables.get_mut(identifier).unwrap() += BigInt::from(1);
-                } else { variables.insert(identifier.clone(), BigInt::from(1)); },
-                other => other_factors.push(other.clone()),
+                Variable (identifier) => if variables.contains_key(&identifier) {
+                    *variables.get_mut(&identifier).unwrap() += BigInt::from(1);
+                } else { variables.insert(identifier, BigInt::from(1)); },
+                other => other_factors.push(other),
             }
+            if multiplier.is_zero() { return Monomial {
+                multiplier: BigRational::zero(),
+                variables: HashMap::new(),
+                other_factors: vec![],
+            }}
         }
         for monomial in monomials {
             multiplier *= monomial.multiplier;
@@ -65,8 +72,16 @@ impl<I: Clone + Eq + Hash + PartialEq> Monomial<I> {
         Self { multiplier, variables, other_factors }
     }
 
+    /// Returns a `Monomial` as an expression
+    pub fn to_expression(self) -> Expression<I> {
+        let factors: Vec<Expression<I>> = self.to_factors();
+        if factors.len() == 1 {
+            factors[0].clone()
+        } else { Product (factors) }
+    }
+
     /// Returns a `Monomial` as its factors
-    pub fn to_factors(self) -> Vec<Expression<I>> {
+    fn to_factors(self) -> Vec<Expression<I>> {
         let mut factors: Vec<Expression<I>> = self.variables.into_iter()
             .map(|(identifier, exponent)| if exponent == BigInt::from(1) {
                 Variable(identifier)
@@ -76,12 +91,14 @@ impl<I: Clone + Eq + Hash + PartialEq> Monomial<I> {
             ))) })
             .collect();
         factors.extend(self.other_factors.into_iter());
-        factors.push(if self.multiplier.is_integer() {
-            Integer (self.multiplier.to_integer())
+        if self.multiplier.is_integer() {
+            if self.multiplier != BigRational::one() {
+                factors.push(Integer (self.multiplier.to_integer()));
+            }
         } else {
             let (numerator, denominator): (BigInt, BigInt) = self.multiplier.into_raw();
-            Quotient (Box::new ((Integer (numerator), Integer(denominator))))
-        });
+            factors.push(Quotient (Box::new ((Integer (numerator), Integer(denominator)))));
+        };
         factors
     }
 

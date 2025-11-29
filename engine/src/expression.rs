@@ -1,5 +1,6 @@
 // Copyright Rob Gage 2025
 
+use crate::Monomial;
 use num::{
     bigint::BigInt,
     integer::Integer,
@@ -12,12 +13,13 @@ use std::{
         Formatter,
         Result as FormatResult,
         Write,
-    }
+    },
+    hash::Hash,
 };
 
 /// An algebraic expression
 #[derive(Clone)]
-pub enum Expression<I: Clone + Eq + PartialEq = usize> {
+pub enum Expression<I: Clone + Eq + Hash +PartialEq = usize> {
 
     /// Addition of terms
     Sum (Vec<Expression<I>>),
@@ -45,14 +47,14 @@ pub enum Expression<I: Clone + Eq + PartialEq = usize> {
 
 }
 
-impl<I: Clone + Eq + PartialEq> Expression<I> {
+impl<I: Clone + Eq + Hash + PartialEq> Expression<I> {
 
     /// Evaluates an `Expression` with a list of input values for a given variable
     ///
     /// (This method requires that no other unsubstituted variables remain in the `Expression`)
     pub fn evaluate(&self, variable: &I, values: &[f64]) -> Result<Vec<f64>, ()> {
         match self {
-            Expression::Sum(terms) => {
+            Expression::Sum (terms) => {
                 let mut output: Vec<f64> = vec![0.0; values.len()];
                 for term in terms {
                     let term_values: Vec<f64> = term.evaluate(variable, values)?;
@@ -62,7 +64,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                 }
                 Ok (output)
             }
-            Expression::Product(factors) => {
+            Expression::Product (factors) => {
                 let mut output: Vec<f64> = vec![1.0; values.len()];
                 for factor in factors {
                     let term_values: Vec<f64> = factor.evaluate(variable, values)?;
@@ -72,7 +74,7 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                 }
                 Ok (output)
             }
-            Expression::Quotient(operands) => Ok (
+            Expression::Quotient (operands) => Ok (
                 operands.0.evaluate(variable, values)?.into_iter()
                     .zip(operands.1.evaluate(variable, values)?.into_iter())
                     .map(|(a, b)| a / b)
@@ -139,37 +141,8 @@ impl<I: Clone + Eq + PartialEq> Expression<I> {
                 }
             }
             Product(factors) => {
-                let factors: Vec<Self> = factors.into_iter()
-                    .flat_map(|term| match term {
-                        Product(factors) => factors.into_iter()
-                            .map(|term| term.reduce())
-                            .collect(),
-                        other => vec![other.reduce()]
-                    })
-                    .collect();
-                match factors {
-                    // remove unnecessary `Multiplication` from single term
-                    factors if factors.len() == 1 => factors[0].clone(),
-                    // convert empty `Multiplication` to `0`
-                    factors if factors.len() == 0 => Integer (BigInt::from(0)),
-                    // reduce other `Multiplication`s
-                    terms => {
-                        let mut integer_product: BigInt = BigInt::from(1);
-                        let mut other_terms: Vec<Expression<I>> = Vec::new();
-                        for term in terms {
-                            match term {
-                                Integer (integer) => integer_product *= integer,
-                                other => other_terms.push(other.clone()),
-                            }
-                        }
-                        if integer_product == BigInt::ZERO {
-                            return Integer (BigInt::ZERO);
-                        } else if integer_product != BigInt::from(1) {
-                            other_terms.push(Integer (integer_product));
-                        }
-                        Product(other_terms)
-                    }
-                }
+                let monomial: Monomial<I> = Monomial::from_factors(&factors);
+                monomial.to_expression()
             }
             Quotient(terms) => {
                 let dividend: Expression<I> = terms.0.reduce();
