@@ -1,7 +1,10 @@
 // Copyright Rob Gage 2025
 
-use num_bigint::BigInt;
-use num_integer::Integer;
+use num::{
+    bigint::BigInt,
+    integer::Integer,
+    traits::ToPrimitive,
+};
 use std::{
     f64::consts::E,
     fmt::{
@@ -11,7 +14,6 @@ use std::{
         Write,
     }
 };
-use num_traits::ToPrimitive;
 
 /// An algebraic expression
 #[derive(Clone)]
