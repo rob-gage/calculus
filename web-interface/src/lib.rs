@@ -41,7 +41,18 @@ pub fn App() -> impl IntoView {
     view! {
         <div id="container">
             <div id="header">
-                <h1>{r"Rob's Differentiation Engine"}</h1>
+                <h1>{r"Differentiation Engine"}</h1>
+                <div style="
+                    width: 100%;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: space-between;
+                ">
+                    <span>Created by Rob Gage</span>
+                    <a href="https://whitedogwood.net">White Dogwood</a>
+                    <a href="https://whitedogwood.net/projects">Other Projects</a>
+                    <a href="https://github.com/rob-gage/calculus">Source</a>
+                </div>
             </div>
             <div id="content">
                 <input
