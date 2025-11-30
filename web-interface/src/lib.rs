@@ -55,16 +55,28 @@ pub fn App() -> impl IntoView {
                 </div>
             </div>
             <div id="content">
-                <input
-                    type="text"
-                    bind:value=formula_string
-                    placeholder="(10 + exp(x))/x^2"
-                />
-                <div style="width: 80%; display: flex; flex-direction: row; gap: 10%;">
+                <div style="display: flex; flex-direction: row; gap: 16px; font-size: large;">
+                    <label>f(x) = </label>
+                    <input
+                        type="text"
+                        bind:value=formula_string
+                        placeholder="exp(x) * x^2"
+                    />
+                </div>
+                <div style="
+                    width: 80%;
+                    display: flex;
+                    flex-direction: row;
+                    gap: 10%;
+                    font-size:
+                    large;"
+                >
                     <div style="margin: 2.5%; width: 45%; height: 200px">
+                        <span style="position: absolute; margin: 16px;">f(x) = </span>
                         <Math latex=latex  />
                     </div>
                     <div style="margin: 2.5%; width: 45%; height: 200px; ">
+                        <span style="position: absolute; margin: 16px;">{r"f'(x) = "}</span>
                         <Math latex=derived_latex />
                     </div>
                 </div>
