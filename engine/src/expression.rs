@@ -191,7 +191,7 @@ impl<I: Clone + Eq + Hash + PartialEq> Expression<I> {
                 .collect()
             ),
             // product rule
-            Product(factors) => Sum(factors.iter()
+            Product (factors) => Sum(factors.iter()
                 .enumerate()
                 .map(|(factor_index, factor)| {
                     let mut output: Vec<Expression<I>> = Vec::with_capacity(factors.len());
@@ -206,10 +206,14 @@ impl<I: Clone + Eq + Hash + PartialEq> Expression<I> {
                 .collect()
             ),
             // quotient rule
-            Quotient(terms) => Quotient(Box::new((
+            Quotient (terms) => Quotient(Box::new((
                 Sum(vec![
                     Product(vec![terms.0.differentiate(variable), terms.1.clone()]),
-                    Product(vec![terms.0.clone(), terms.1.differentiate(variable)]),
+                    Product(vec![
+                        terms.0.clone(),
+                        terms.1.differentiate(variable),
+                        Integer (BigInt::from(-1))
+                    ]),
                 ]),
                 Product(vec![terms.1.clone(), terms.1.clone()])
             ))),
